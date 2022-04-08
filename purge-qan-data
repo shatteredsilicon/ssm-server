@@ -10,7 +10,7 @@ if [ -z "$(pt-archiver --version)" ]; then
 fi
 
 MYCNF="${MYCNF}"
-DB="${DB:-pmm}"
+DB="${DB:-ssm}"
 INTERVAL="${QUERIES_RETENTION:-8}"
 
 set -eu
