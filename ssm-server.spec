@@ -41,7 +41,7 @@ sed -i "s/v[0-9].[0-9].[0-9]/v%{version}/" landing-page/index.html
 
 %build
 export NG_CLI_ANALYTICS="false"
-make build-password-page
+cd password-page && npm run build:ami && npm run build:ovf
 
 
 %install
