@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # Grafana dashboard importer script.
 
@@ -27,7 +27,7 @@ DASHBOARD_DIR    = SCRIPT_DIR + '/dashboards/'
 NEW_VERSION_FILE = SCRIPT_DIR + '/VERSION'
 OLD_VERSION_FILE = GRAFANA_DB_DIR + '/PERCONA_DASHBOARDS_VERSION'
 HOST             = 'http://127.0.0.1:3000'
-LOGO_FILE        = '/usr/share/pmm-server/landing-page/img/pmm-logo.svg'
+LOGO_FILE        = '/usr/share/ssm-server/landing-page/img/ssm-logo.png'
 SET_OF_TAGS 	 = {'QAN': 0, 'OS': 0, 'MySQL': 0, 'MongoDB': 0, 'PostgreSQL': 0, 'HA': 0, 'Cloud': 0, 'Insight': 0, 'PMM': 0}
 YEAR             = str(datetime.date.today())[:4]
 CONTENT          = '''<center>
@@ -223,7 +223,7 @@ def add_datasources(api_key):
             'access': 'proxy',
             'jsonData': {},
             'secureJsonFields': {},
-            'database': 'pmm',
+            'database': 'ssm',
             'user': 'grafana',
             'password': 'N9mutoipdtlxutgi9rHIFnjM'
         })
@@ -235,8 +235,8 @@ def add_datasources(api_key):
 
 
 def copy_apps():
-    for app in ['pmm-app']:
-        source_dir = '/usr/share/percona-dashboards/' + app
+    for app in ['ssm-app']:
+        source_dir = '/usr/share/ssm-dashboards/' + app
         dest_dir = '/var/lib/grafana/plugins/' + app
         if os.path.isdir(source_dir):
             print ' * Copying %r' % (app,)
@@ -244,18 +244,25 @@ def copy_apps():
             shutil.copytree(source_dir, dest_dir)
 
 
+def map_app_name(app_name):
+    if app_name == 'ssm-app':
+        return 'pmm-app'
+
+    return ''
+
+
 def import_apps(api_key):
-    for app in ['pmm-app']:
+    for app in ['ssm-app']:
         print ' * Importing %r' % (app,)
         data = json.dumps({'enabled': False})
-        r = requests.post('%s/api/plugins/%s/settings' % (HOST, app), data=data, headers=grafana_headers(api_key))
+        r = requests.post('%s/api/plugins/%s/settings' % (HOST, map_app_name(app)), data=data, headers=grafana_headers(api_key))
         print ' * Plugin disable result: %r %r' % (r.status_code, r.content)
         if r.status_code != httplib.OK:
             print ' * Cannot dissable %s app' % app
             sys.exit(-1)
 
         data = json.dumps({'enabled': True})
-        r = requests.post('%s/api/plugins/%s/settings' % (HOST, app), data=data, headers=grafana_headers(api_key))
+        r = requests.post('%s/api/plugins/%s/settings' % (HOST, map_app_name(app)), data=data, headers=grafana_headers(api_key))
         print ' * Plugin enable result: %r %r' % (r.status_code, r.content)
         if r.status_code != httplib.OK:
             print ' * Cannot enable %s app' % app
@@ -315,7 +322,7 @@ def add_demo_footer():
     # Add Copyright&Legal footer into dashboards
     # It's used only for a pmmdemo installation
     print ' * adding Copyright&Legal footer into dashboards'
-    source_dir = '/usr/share/percona-dashboards/pmm-app/dist/dashboards/'
+    source_dir = '/usr/share/ssm-dashboards/ssm-app/dist/dashboards/'
     dirs = os.listdir(source_dir)
 
     for d_file in dirs:

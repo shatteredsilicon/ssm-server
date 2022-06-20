@@ -1,6 +1,3 @@
-remote_read:
-  - url: "http://127.0.0.1:9094/prometheus1/api/v1/read"
-
 global:
   scrape_interval:     60s
   scrape_timeout:      10s
@@ -14,7 +11,7 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
         labels:
-          instance: pmm-server
+          instance: ssm-server
 
 
   - job_name: grafana
@@ -23,7 +20,7 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:3000']
         labels:
-          instance: pmm-server
+          instance: ssm-server
 
 
   - job_name: linux
@@ -54,7 +51,7 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9100']
         labels:
-          instance: pmm-server
+          instance: ssm-server
 
   - job_name: proxysql
     scrape_interval: 1s
