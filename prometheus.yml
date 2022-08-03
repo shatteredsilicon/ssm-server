@@ -39,6 +39,8 @@ scrape_configs:
       services: ['linux:metrics']
 
     relabel_configs:
+    - target_label:  'job'
+      replacement:   'linux'
     - source_labels: ['__meta_consul_tags']
       regex:         '.*,alias_([-\w:\.]+),.*'
       target_label:  'instance'
@@ -46,6 +48,10 @@ scrape_configs:
     - source_labels: ['__meta_consul_tags']
       regex:         '.*,scheme_([\w]+),.*'
       target_label:  '__scheme__'
+      replacement:   '$1'
+    - source_labels: ['__meta_consul_tags']
+      regex:         '.*,region_([\w]+),.*'
+      target_label:  'region'
       replacement:   '$1'
 
     static_configs:
@@ -69,6 +75,8 @@ scrape_configs:
       services: ['proxysql:metrics']
 
     relabel_configs:
+    - target_label:  'job'
+      replacement:   'proxysql'
     - source_labels: ['__meta_consul_tags']
       regex:         '.*,alias_([-\w:\.]+),.*'
       target_label:  'instance'
@@ -76,6 +84,10 @@ scrape_configs:
     - source_labels: ['__meta_consul_tags']
       regex:         '.*,scheme_([\w]+),.*'
       target_label:  '__scheme__'
+      replacement:   '$1'
+    - source_labels: ['__meta_consul_tags']
+      regex:         '.*,region_([\w]+),.*'
+      target_label:  'region'
       replacement:   '$1'
 
 
@@ -95,6 +107,8 @@ scrape_configs:
       services: ['mongodb:metrics']
 
     relabel_configs:
+    - target_label:  'job'
+      replacement:   'mongodb'
     - source_labels: ['__meta_consul_tags']
       regex:         '.*,alias_([-\w:\.]+),.*'
       target_label:  'instance'
@@ -106,6 +120,10 @@ scrape_configs:
     - source_labels: ['__meta_consul_tags']
       regex:         '.*,cluster_([-\w:\.]+),.*'
       target_label:  'cluster'
+      replacement:   '$1'
+    - source_labels: ['__meta_consul_tags']
+      regex:         '.*,region_([\w]+),.*'
+      target_label:  'region'
       replacement:   '$1'
 
 
@@ -136,6 +154,10 @@ scrape_configs:
       regex:         '.*,scheme_([\w]+),.*'
       target_label:  '__scheme__'
       replacement:   '$1'
+    - source_labels: ['__meta_consul_tags']
+      regex:         '.*,region_([\w]+),.*'
+      target_label:  'region'
+      replacement:   '$1'
 
 
   - job_name: mysql-hr
@@ -164,6 +186,10 @@ scrape_configs:
     - source_labels: ['__meta_consul_tags']
       regex:         '.*,scheme_([\w]+),.*'
       target_label:  '__scheme__'
+      replacement:   '$1'
+    - source_labels: ['__meta_consul_tags']
+      regex:         '.*,region_([\w]+),.*'
+      target_label:  'region'
       replacement:   '$1'
 
 
@@ -194,6 +220,10 @@ scrape_configs:
       regex:         '.*,scheme_([\w]+),.*'
       target_label:  '__scheme__'
       replacement:   '$1'
+    - source_labels: ['__meta_consul_tags']
+      regex:         '.*,region_([\w]+),.*'
+      target_label:  'region'
+      replacement:   '$1'
 
 
   - job_name: mysql-lr
@@ -222,4 +252,8 @@ scrape_configs:
     - source_labels: ['__meta_consul_tags']
       regex:         '.*,scheme_([\w]+),.*'
       target_label:  '__scheme__'
+      replacement:   '$1'
+    - source_labels: ['__meta_consul_tags']
+      regex:         '.*,region_([\w]+),.*'
+      target_label:  'region'
       replacement:   '$1'
