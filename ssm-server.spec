@@ -16,7 +16,7 @@ URL:		https://%{provider_prefix}
 Source0:	%{name}-%{version}.tar.gz
 
 Requires:	nginx ansible git bats
-BuildRequires:	openssl nodejs
+BuildRequires:	openssl nodejs npm
 
 %if 0%{?fedora} || 0%{?rhel} == 7
 BuildRequires: systemd
