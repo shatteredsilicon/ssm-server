@@ -8,7 +8,7 @@
 
 Name:		%{repo}
 Version:	%{_version}
-Release:	22%{?dist}
+Release:	1%{?dist}
 Summary:	Shattered Silicon Monitoring and Management Server
 
 License:	AGPLv3
