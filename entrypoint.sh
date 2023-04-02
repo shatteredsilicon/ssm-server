@@ -43,8 +43,6 @@ if [[ "${ORCHESTRATOR_ENABLED}" = "true" ]]; then
     cat /tmp/orchestrator.conf.json > /etc/orchestrator.conf.json
     rm -rf /tmp/orchestrator.conf.json
 fi
-cat /tmp/ssm.ini > /etc/supervisord.d/ssm.ini
-rm -rf /tmp/ssm.ini
 
 # Cron
 sed "s/^INTERVAL=.*/INTERVAL=${QUERIES_RETENTION:-8}/" /etc/cron.daily/purge-qan-data > /tmp/purge-qan-data
@@ -62,14 +60,6 @@ if [ -n "${SERVER_PASSWORD}" -a -z "${UPDATE_MODE}" ]; then
 	ssm-configure -skip-prometheus-reload true -grafana-db-path /var/lib/grafana/grafana.db || :
 fi
 
-# Upgrade
-if [ -f /var/lib/grafana/grafana.db ]; then
-    chown -R ssm:ssm /opt/consul-data
-    chown -R ssm:ssm /opt/prometheus/data
-    chown -R mysql:mysql /var/lib/mysql
-    chown -R grafana:grafana /var/lib/grafana
-fi
-
 # copy SSL, follow links
 pushd /etc/nginx >/dev/null
     if [ -s ssl/server.crt ]; then
@@ -83,7 +73,64 @@ pushd /etc/nginx >/dev/null
     fi
 popd >/dev/null
 
+# Upgrade
+if [ -f /opt/consul-data/node-id ]; then
+    # Check if it's a upgrade from PMM
+    if [[ $(stat -c "%U" /opt/prometheus/data) == "pmm" ]]; then
+        migrate_from_pmm
+    fi
+
+    chown -R ssm:ssm /opt/consul-data
+    chown -R ssm:ssm /opt/prometheus/data
+    chown -R mysql:mysql /var/lib/mysql
+    chown -R grafana:grafana /var/lib/grafana
+
+    # Do not set the innodb_page_size if it's an upgrade
+    sed -i "s/^\([[:space:]]*innodb_page_size.*\)/#\1/g" /etc/my.cnf.d/00-ssm.cnf
+fi
+
+cat /tmp/ssm.ini > /etc/supervisord.d/ssm.ini
+rm -rf /tmp/ssm.ini
 # Start supervisor in foreground
 if [ -z "${UPDATE_MODE}" ]; then
     exec supervisord -n -c /etc/supervisord.conf
 fi
+
+migrate_from_pmm() {
+    local supervisord_pid=
+    supervisord -n -c /etc/supervisord.conf & supervisord_pid=$!
+
+    # Stop all running services
+    while read -r line; do
+        line_arr=(${line})
+        if [[ "${line_arr[1]}" == "RUNNING" ]] && [[ "${line_arr[0]}" != "mysql" ]]; then
+            supervisorctl stop "${line_arr[0]}"
+        fi
+    done < <(supervisorctl status)
+
+    # Migrate mysql to mariadb
+    mysql_upgrade
+
+    # Migrate database 'pmm'
+    mysqldump -R pmm > /tmp/pmm.sql
+    mysql --execute="CREATE DATABASE IF NOT EXISTS ssm;"
+    mysql ssm < /tmp/pmm.sql
+
+    # Migrate database 'pmm-managed'
+    mysqldump -R pmm-managed > /tmp/pmm-managed.sql
+    mysql --execute="CREATE DATABASE IF NOT EXISTS \`ssm-managed\`;"
+    mysql ssm-managed < /tmp/pmm-managed.sql
+
+    # Migrate database data
+    mysql --database="ssm-managed" --execute="UPDATE nodes SET \`type\` = 'ssm-server', name = 'SSM Server' WHERE \`type\` = 'pmm-server';"
+
+    # Migrate Grafana
+    if [[ -d /var/lib/grafana/plugins/pmm-app ]]; then
+        mv /var/lib/grafana/plugins/pmm-app /tmp/pmm-app
+    fi
+
+    # Adjust arguments
+    sed -i "s/#\(-\?-pmm-compatible\)/\1/g" /tmp/ssm.ini
+
+    kill $supervisord_pid
+}
