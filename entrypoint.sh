@@ -102,13 +102,12 @@ migrate_from_pmm() {
     local supervisord_pid=
     supervisord -n -c /etc/supervisord.conf & supervisord_pid=$!
 
-    # Stop all running services
-    while read -r line; do
-        line_arr=(${line})
-        if [[ "${line_arr[1]}" == "RUNNING" ]] && [[ "${line_arr[0]}" != "mysql" ]]; then
-            supervisorctl stop "${line_arr[0]}"
-        fi
-    done < <(supervisorctl status)
+    # Stop all running services and start mysqld only
+    supervisorctl stop all
+    supervisorctl start mysql
+
+    # Wait for mysql to start
+    sleep 5
 
     # Migrate mysql to mariadb
     mysql_upgrade
