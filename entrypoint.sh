@@ -74,7 +74,7 @@ pushd /etc/nginx >/dev/null
 popd >/dev/null
 
 # Upgrade
-if [ -f /opt/consul-data/node-id ]; then
+if [ -f /var/lib/grafana/PERCONA_DASHBOARDS_VERSION ] && [ -f /usr/share/ssm-dashboards/VERSION ] && [[ "$(cat /usr/share/ssm-dashboards/VERSION)" > "$(cat /var/lib/grafana/PERCONA_DASHBOARDS_VERSION)" ]]; then
     # Check if it's a upgrade from PMM
     if [[ $(stat -c "%U" /opt/prometheus/data) == "pmm" ]]; then
         migrate_from_pmm
@@ -84,9 +84,6 @@ if [ -f /opt/consul-data/node-id ]; then
     chown -R ssm:ssm /opt/prometheus/data
     chown -R mysql:mysql /var/lib/mysql
     chown -R grafana:grafana /var/lib/grafana
-
-    # Do not set the innodb_page_size if it's an upgrade
-    sed -i "s/^\([[:space:]]*innodb_page_size.*\)/#\1/g" /etc/my.cnf.d/00-ssm.cnf
 fi
 
 cat /tmp/ssm.ini > /etc/supervisord.d/ssm.ini
