@@ -66,6 +66,7 @@ mv clickhouse.xml %{buildroot}%{_sysconfdir}/clickhouse-server/config.xml
 
 install -d %{buildroot}%{_sysconfdir}/my.cnf.d
 mv my.cnf %{buildroot}%{_sysconfdir}/my.cnf.d/00-ssm.cnf
+mv page.cnf %{buildroot}%{_sysconfdir}/my.cnf.d/page.cnf
 
 install -d %{buildroot}%{_sysconfdir}/supervisord.d
 mv supervisord.conf %{buildroot}%{_sysconfdir}/supervisord.d/ssm.ini

@@ -74,7 +74,7 @@ pushd /etc/nginx >/dev/null
 popd >/dev/null
 
 # Upgrade
-if [ -f /opt/consul-data/node-id ]; then
+if [ -f /var/lib/grafana/PERCONA_DASHBOARDS_VERSION ] && [ -f /usr/share/ssm-dashboards/VERSION ] && [[ "$(cat /usr/share/ssm-dashboards/VERSION)" > "$(cat /var/lib/grafana/PERCONA_DASHBOARDS_VERSION)" ]]; then
     # Check if it's a upgrade from PMM
     if [[ $(stat -c "%U" /opt/prometheus/data) == "pmm" ]]; then
         migrate_from_pmm
@@ -84,9 +84,6 @@ if [ -f /opt/consul-data/node-id ]; then
     chown -R ssm:ssm /opt/prometheus/data
     chown -R mysql:mysql /var/lib/mysql
     chown -R grafana:grafana /var/lib/grafana
-
-    # Do not set the innodb_page_size if it's an upgrade
-    sed -i "s/^\([[:space:]]*innodb_page_size.*\)/#\1/g" /etc/my.cnf.d/00-ssm.cnf
 fi
 
 cat /tmp/ssm.ini > /etc/supervisord.d/ssm.ini
@@ -100,13 +97,12 @@ migrate_from_pmm() {
     local supervisord_pid=
     supervisord -n -c /etc/supervisord.conf & supervisord_pid=$!
 
-    # Stop all running services
-    while read -r line; do
-        line_arr=(${line})
-        if [[ "${line_arr[1]}" == "RUNNING" ]] && [[ "${line_arr[0]}" != "mysql" ]]; then
-            supervisorctl stop "${line_arr[0]}"
-        fi
-    done < <(supervisorctl status)
+    # Stop all running services and start mysqld only
+    supervisorctl stop all
+    supervisorctl start mysql
+
+    # Wait for mysql to start
+    sleep 5
 
     # Migrate mysql to mariadb
     mysql_upgrade
