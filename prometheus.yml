@@ -49,6 +49,10 @@ scrape_configs:
       regex:         '.*,scheme_([\w]+),.*'
       target_label:  '__scheme__'
       replacement:   '$1'
+    - source_labels: ['__meta_consul_tags']
+      regex:         '.*,region_([\w]+),.*'
+      target_label:  'region'
+      replacement:   '$1'
 
     static_configs:
       - targets: ['localhost:9100']
@@ -80,6 +84,10 @@ scrape_configs:
     - source_labels: ['__meta_consul_tags']
       regex:         '.*,scheme_([\w]+),.*'
       target_label:  '__scheme__'
+      replacement:   '$1'
+    - source_labels: ['__meta_consul_tags']
+      regex:         '.*,region_([\w]+),.*'
+      target_label:  'region'
       replacement:   '$1'
 
 
@@ -113,6 +121,10 @@ scrape_configs:
       regex:         '.*,cluster_([-\w:\.]+),.*'
       target_label:  'cluster'
       replacement:   '$1'
+    - source_labels: ['__meta_consul_tags']
+      regex:         '.*,region_([\w]+),.*'
+      target_label:  'region'
+      replacement:   '$1'
 
 
   - job_name: postgresql
@@ -141,6 +153,10 @@ scrape_configs:
     - source_labels: ['__meta_consul_tags']
       regex:         '.*,scheme_([\w]+),.*'
       target_label:  '__scheme__'
+      replacement:   '$1'
+    - source_labels: ['__meta_consul_tags']
+      regex:         '.*,region_([\w]+),.*'
+      target_label:  'region'
       replacement:   '$1'
 
 
@@ -171,6 +187,10 @@ scrape_configs:
       regex:         '.*,scheme_([\w]+),.*'
       target_label:  '__scheme__'
       replacement:   '$1'
+    - source_labels: ['__meta_consul_tags']
+      regex:         '.*,region_([\w]+),.*'
+      target_label:  'region'
+      replacement:   '$1'
 
 
   - job_name: mysql-mr
@@ -200,6 +220,10 @@ scrape_configs:
       regex:         '.*,scheme_([\w]+),.*'
       target_label:  '__scheme__'
       replacement:   '$1'
+    - source_labels: ['__meta_consul_tags']
+      regex:         '.*,region_([\w]+),.*'
+      target_label:  'region'
+      replacement:   '$1'
 
 
   - job_name: mysql-lr
@@ -228,4 +252,8 @@ scrape_configs:
     - source_labels: ['__meta_consul_tags']
       regex:         '.*,scheme_([\w]+),.*'
       target_label:  '__scheme__'
+      replacement:   '$1'
+    - source_labels: ['__meta_consul_tags']
+      regex:         '.*,region_([\w]+),.*'
+      target_label:  'region'
       replacement:   '$1'
