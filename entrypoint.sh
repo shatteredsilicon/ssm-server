@@ -73,36 +73,12 @@ pushd /etc/nginx >/dev/null
     fi
 popd >/dev/null
 
-# Upgrade
-if [ -f /var/lib/grafana/PERCONA_DASHBOARDS_VERSION ] && [ -f /usr/share/ssm-dashboards/VERSION ] && [[ "$(cat /usr/share/ssm-dashboards/VERSION)" > "$(cat /var/lib/grafana/PERCONA_DASHBOARDS_VERSION)" ]]; then
-    # Check if it's a upgrade from PMM
-    if [[ $(stat -c "%U" /opt/prometheus/data) == "pmm" ]]; then
-        migrate_from_pmm
-    fi
-
-    chown -R ssm:ssm /opt/consul-data
-    chown -R ssm:ssm /opt/prometheus/data
-    chown -R mysql:mysql /var/lib/mysql
-    chown -R grafana:grafana /var/lib/grafana
-fi
-
-cat /tmp/ssm.ini > /etc/supervisord.d/ssm.ini
-rm -rf /tmp/ssm.ini
-# Start supervisor in foreground
-if [ -z "${UPDATE_MODE}" ]; then
-    exec supervisord -n -c /etc/supervisord.conf
-fi
-
 migrate_from_pmm() {
-    local supervisord_pid=
-    supervisord -n -c /etc/supervisord.conf & supervisord_pid=$!
-
-    # Stop all running services and start mysqld only
-    supervisorctl stop all
-    supervisorctl start mysql
+    local mysql_pid=
+    /usr/libexec/mysqld --user=mysql --basedir=/usr --datadir=/var/lib/mysql --plugin-dir=/usr/lib64/mariadb/plugin --pid-file=/var/run/mariadb/mysqld.pid --socket=/var/lib/mysql/mysql.sock & mysql_pid=$!
 
     # Wait for mysql to start
-    sleep 5
+    sleep 30
 
     # Migrate mysql to mariadb
     mysql_upgrade
@@ -120,13 +96,29 @@ migrate_from_pmm() {
     # Migrate database data
     mysql --database="ssm-managed" --execute="UPDATE nodes SET \`type\` = 'ssm-server', name = 'SSM Server' WHERE \`type\` = 'pmm-server';"
 
-    # Migrate Grafana
-    if [[ -d /var/lib/grafana/plugins/pmm-app ]]; then
-        mv /var/lib/grafana/plugins/pmm-app /tmp/pmm-app
-    fi
-
     # Adjust arguments
     sed -i "s/#\(-\?-pmm-compatible\)/\1/g" /tmp/ssm.ini
 
-    kill $supervisord_pid
+    kill $mysql_pid
 }
+
+# Upgrade
+if [ -f /var/lib/grafana/PERCONA_DASHBOARDS_VERSION ] && [ -f /usr/share/ssm-dashboards/VERSION ] && [[ "$(cat /usr/share/ssm-dashboards/VERSION)" > "$(cat /var/lib/grafana/PERCONA_DASHBOARDS_VERSION)" ]]; then
+    chown -R mysql:mysql /var/lib/mysql
+    chown -R ssm:ssm /opt/consul-data
+    chown -R ssm:ssm /opt/prometheus/data
+    chown -R grafana:grafana /var/lib/grafana
+
+    # Check if it's a upgrade from PMM
+    if [[ -d /var/lib/grafana/plugins/pmm-app ]]; then
+        migrate_from_pmm
+        mv /var/lib/grafana/plugins/pmm-app /tmp/pmm-app
+    fi
+fi
+
+cat /tmp/ssm.ini > /etc/supervisord.d/ssm.ini
+rm -rf /tmp/ssm.ini
+# Start supervisor in foreground
+if [ -z "${UPDATE_MODE}" ]; then
+    exec supervisord -n -c /etc/supervisord.conf
+fi
