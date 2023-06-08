@@ -96,9 +96,6 @@ migrate_from_pmm() {
     # Migrate database data
     mysql --database="ssm-managed" --execute="UPDATE nodes SET \`type\` = 'ssm-server', name = 'SSM Server' WHERE \`type\` = 'pmm-server';"
 
-    # Adjust arguments
-    sed -i "s/#\(-\?-pmm-compatible\)/\1/g" /tmp/ssm.ini
-
     kill $mysql_pid
 }
 
