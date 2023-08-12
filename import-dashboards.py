@@ -28,6 +28,7 @@ NEW_VERSION_FILE = SCRIPT_DIR + "/VERSION"
 OLD_VERSION_FILE = GRAFANA_DB_DIR + "/PERCONA_DASHBOARDS_VERSION"
 HOST = "http://127.0.0.1:3000"
 LOGO_FILE = "/usr/share/ssm-server/landing-page/img/ssm-logo.png"
+SSM_APP_NAME = "ssm-app"
 SET_OF_TAGS = {
     "QAN": 0,
     "OS": 0,
@@ -280,7 +281,9 @@ def add_datasources(api_key):
                 "secureJsonFields": {},
                 "database": "ssm",
                 "user": "grafana",
-                "password": "N9mutoipdtlxutgi9rHIFnjM",
+                "secureJsonData": {
+                    "password": "N9mutoipdtlxutgi9rHIFnjM",
+                },
             }
         )
         r = requests.post(
@@ -293,7 +296,7 @@ def add_datasources(api_key):
 
 
 def copy_apps():
-    for app in ["ssm-app"]:
+    for app in [SSM_APP_NAME]:
         source_dir = "/usr/share/ssm-dashboards/" + app
         dest_dir = "/var/lib/grafana/plugins/" + app
         if os.path.isdir(source_dir):
@@ -303,14 +306,14 @@ def copy_apps():
 
 
 def map_app_name(app_name):
-    if app_name == "ssm-app":
+    if app_name == SSM_APP_NAME:
         return "pmm-app"
 
-    return ""
+    return app_name
 
 
 def import_apps(api_key):
-    for app in ["ssm-app"]:
+    for app in [SSM_APP_NAME]:
         print(" * Importing %r" % (app,))
         data = json.dumps({"enabled": False})
         r = requests.post(
@@ -396,7 +399,7 @@ def add_demo_footer():
     # Add Copyright&Legal footer into dashboards
     # It's used only for a pmmdemo installation
     print(" * adding Copyright&Legal footer into dashboards")
-    source_dir = "/usr/share/ssm-dashboards/ssm-app/dist/dashboards/"
+    source_dir = "/usr/share/ssm-dashboards/%s/dist/dashboards/" % (SSM_APP_NAME)
     dirs = os.listdir(source_dir)
 
     for d_file in dirs:
@@ -439,22 +442,26 @@ def add_demo_footer():
 
 
 def set_home_dashboard(api_key):
-    # Get dashboard information by dashboard slug (name) which is "home-dashboard" in our case
-    # This API is different from /api/dashboards/home which returns home dashboard
-    r = requests.get(
-        "%s/api/dashboards/db/home-dashboard" % (HOST,),
-        headers=grafana_headers(api_key),
+    con = sqlite3.connect(GRAFANA_DB_DIR + "/grafana.db", isolation_level="EXCLUSIVE")
+    cur = con.cursor()
+
+    cur.execute(
+        "SELECT id FROM dashboard WHERE slug = 'home-dashboard' AND plugin_id = ?",
+        (map_app_name(SSM_APP_NAME),),
     )
-    print(' * "home" dashboard: %r %r' % (r.status_code, r.content))
-    if r.status_code != http.client.OK:
-        # TODO sys.exit(-1)
+    row = cur.fetchone()
+    if not row:
+        print(" * Select home dashboard id from db failed, no row found")
         return
 
-    res = json.loads(r.content)
+    con.commit()
+    con.close()
 
-    data = json.dumps({"homeDashboardId": res["dashboard"]["id"]})
-    r = requests.put(
-        "%s/api/user/preferences" % (HOST,), data=data, headers=grafana_headers(api_key)
+    data = json.dumps({"homeDashboardId": row[0]})
+    r = requests.post(
+        "%s/api/preferences/set-home-dash" % (HOST,),
+        data=data,
+        headers=grafana_headers(api_key),
     )
     print(" * Preferences set: %r %r" % (r.status_code, r.content))
 
