@@ -75,7 +75,7 @@ popd >/dev/null
 
 migrate_from_pmm() {
     local mysql_pid=
-    /usr/libexec/mysqld --user=mysql --basedir=/usr --datadir=/var/lib/mysql --plugin-dir=/usr/lib64/mariadb/plugin --pid-file=/var/run/mariadb/mysqld.pid --socket=/var/lib/mysql/mysql.sock & mysql_pid=$!
+    /usr/sbin/mysqld --user=mysql --basedir=/usr --datadir=/var/lib/mysql --plugin-dir=/usr/lib64/mysql/plugin --pid-file=/var/lib/mysql/mysqld.pid --socket=/var/lib/mysql/mysql.sock & mysql_pid=$!
 
     # Wait for mysql to start
     sleep 30
@@ -101,7 +101,7 @@ migrate_from_pmm() {
 
 migrate_from_ssm() {
     local mysql_pid=
-    /usr/libexec/mysqld --user=mysql --basedir=/usr --datadir=/var/lib/mysql --plugin-dir=/usr/lib64/mariadb/plugin --pid-file=/var/run/mariadb/mysqld.pid --socket=/var/lib/mysql/mysql.sock & mysql_pid=$!
+    /usr/sbin/mysqld --user=mysql --basedir=/usr --datadir=/var/lib/mysql --plugin-dir=/usr/lib64/mysql/plugin --pid-file=/var/lib/mysql/mysqld.pid --socket=/var/lib/mysql/mysql.sock & mysql_pid=$!
 
     # Wait for mariadb to start
     sleep 30
