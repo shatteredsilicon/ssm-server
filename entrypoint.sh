@@ -81,7 +81,7 @@ migrate_from_pmm() {
     sleep 30
 
     # Migrate mysql to mariadb
-    mysql_upgrade
+    mariadb-upgrade
 
     # Migrate database 'pmm'
     mysqldump -R pmm > /tmp/pmm.sql
@@ -99,6 +99,19 @@ migrate_from_pmm() {
     kill $mysql_pid
 }
 
+migrate_from_ssm() {
+    local mysql_pid=
+    /usr/libexec/mysqld --user=mysql --basedir=/usr --datadir=/var/lib/mysql --plugin-dir=/usr/lib64/mariadb/plugin --pid-file=/var/run/mariadb/mysqld.pid --socket=/var/lib/mysql/mysql.sock & mysql_pid=$!
+
+    # Wait for mariadb to start
+    sleep 30
+
+    # Migrate old mariadb
+    mariadb-upgrade
+
+    kill $mysql_pid
+}
+
 # Upgrade
 if [ -f /var/lib/grafana/PERCONA_DASHBOARDS_VERSION ] && [ -f /usr/share/ssm-dashboards/VERSION ] && [[ "$(cat /usr/share/ssm-dashboards/VERSION)" > "$(cat /var/lib/grafana/PERCONA_DASHBOARDS_VERSION)" ]]; then
     chown -R mysql:mysql /var/lib/mysql
@@ -110,6 +123,8 @@ if [ -f /var/lib/grafana/PERCONA_DASHBOARDS_VERSION ] && [ -f /usr/share/ssm-das
     if [[ -d /var/lib/grafana/plugins/pmm-app ]]; then
         migrate_from_pmm
         mv /var/lib/grafana/plugins/pmm-app /tmp/pmm-app
+    else
+        migrate_from_ssm
     fi
 fi
 
