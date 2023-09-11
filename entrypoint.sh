@@ -128,6 +128,13 @@ if [ -f /var/lib/grafana/PERCONA_DASHBOARDS_VERSION ] && [ -f /usr/share/ssm-das
     fi
 fi
 
+# Debug
+if [[ "$DEBUG" = "1" ]] || [[ "$DEBUG" = "true" ]]; then
+    cp -f /usr/share/ssm-server/zz-debug.cnf /etc/my.cnf.d/zz-debug.cnf
+else
+    rm -f /etc/my.cnf.d/zz-debug.cnf
+fi
+
 cat /tmp/ssm.ini > /etc/supervisord.d/ssm.ini
 rm -rf /tmp/ssm.ini
 # Start supervisor in foreground
