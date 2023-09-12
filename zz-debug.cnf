@@ -1,0 +1,5 @@
+[mysqld]
+slow_query_log = 1
+log_output = FILE
+long_query_time = 0
+innodb_monitor_enable = all
