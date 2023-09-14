@@ -293,6 +293,26 @@ def add_datasources(api_key):
         if r.status_code != http.client.OK:
             print(" * Cannot add QAN-API Data Source")
             sys.exit(-1)
+    else:
+        print(" * Modifing QAN-API Data Source")
+        r = requests.get(
+            "%s/api/datasources/name/QAN-API" % (HOST,),
+            headers=grafana_headers(api_key),
+        )
+        data = json.loads(r.content)
+        if "secureJsonData" in data:
+            data["secureJsonData"]["password"] = "N9mutoipdtlxutgi9rHIFnjM"
+        else:
+            data["secureJsonData"] = {"password": "N9mutoipdtlxutgi9rHIFnjM"}
+        r = requests.put(
+            "%s/api/datasources/%i" % (HOST, data["id"]),
+            data=json.dumps(data),
+            headers=grafana_headers(api_key),
+        )
+        print(r.status_code, r.content)
+        if r.status_code != 200:
+            print(" * Cannot modify QAN-API Data Source")
+            sys.exit(-1)
 
 
 def copy_apps():
