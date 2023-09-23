@@ -96,6 +96,10 @@ migrate_from_pmm() {
     # Migrate database data
     mysql --database="ssm-managed" --execute="UPDATE nodes SET \`type\` = 'ssm-server', name = 'SSM Server' WHERE \`type\` = 'pmm-server';"
 
+    # drop PMM databases
+    mysql --execute="DROP DATABASE pmm;"
+    mysql --execute="DROP DATABASE \`pmm-managed\`;"
+
     kill $mysql_pid
 }
 
