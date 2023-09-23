@@ -113,6 +113,11 @@ migrate_from_ssm() {
     # Migrate old mariadb
     mariadb-upgrade
 
+    # drop PMM databases if they are not
+    # removed previously
+    mysql --execute="DROP DATABASE IF EXISTS pmm;"
+    mysql --execute="DROP DATABASE IF EXISTS \`pmm-managed\`;"
+
     kill $mysql_pid
 }
 
