@@ -11,3 +11,7 @@ GRANT ALL PRIVILEGES ON ssm.* TO "qan-api"@localhost IDENTIFIED BY "qan-api";
 
 ALTER TABLE `ssm`.`query_classes` ADD COLUMN IF NOT EXISTS `procedures` TEXT DEFAULT NULL;
 ALTER TABLE `ssm`.`query_examples` ADD COLUMN IF NOT EXISTS `explain` TEXT DEFAULT NULL;
+
+ALTER TABLE `ssm`.`query_class_metrics`
+ADD INDEX instance_start (instance_id, start_ts),
+ALGORITHM=INPLACE, LOCK=NONE;
