@@ -76,6 +76,7 @@ cp -pav ./entrypoint.sh %{buildroot}%{_datadir}/%{name}/entrypoint.sh
 cp -pav ./password-page/dist %{buildroot}%{_datadir}/%{name}/password-page
 cp -pav ./landing-page/img/ssm-logo.png %{buildroot}%{_datadir}/%{name}/landing-page/img/ssm-logo.png
 cp -pav ./zz-debug.cnf %{buildroot}%{_datadir}/%{name}/zz-debug.cnf
+cp -pav ./ssm-migration.sql %{buildroot}%{_datadir}/%{name}/ssm-migration.sql
 
 install -d %{buildroot}/usr/lib/systemd/system
 install -p -m 0644 node_exporter.service %{buildroot}/usr/lib/systemd/system/node_exporter.service
