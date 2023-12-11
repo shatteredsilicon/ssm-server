@@ -38,7 +38,8 @@ SET_OF_TAGS = {
     "HA": 0,
     "Cloud": 0,
     "Insight": 0,
-    "PMM": 0,
+    "SSM": 0,
+    "Silicon": 0,
 }
 YEAR = str(datetime.date.today())[:4]
 CONTENT = (
