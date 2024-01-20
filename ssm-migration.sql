@@ -1,6 +1,3 @@
-CREATE DATABASE IF NOT EXISTS orchestrator;
-GRANT ALL PRIVILEGES ON orchestrator.* TO 'orchestrator'@'localhost' IDENTIFIED BY 'orchestrator';
-
 CREATE DATABASE IF NOT EXISTS `ssm-managed`;
 GRANT ALL PRIVILEGES ON `ssm-managed`.* TO "ssm-managed"@localhost IDENTIFIED BY "ssm-managed";
 
