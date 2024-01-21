@@ -57,7 +57,6 @@ install -d %{buildroot}%{_sysconfdir}/tmpfiles.d
 mv tmpfiles.d-ssm.conf %{buildroot}%{_sysconfdir}/tmpfiles.d/ssm.conf
 
 mv sysconfig %{buildroot}%{_sysconfdir}/sysconfig
-mv orchestrator.conf.json %{buildroot}%{_sysconfdir}/orchestrator.conf.json
 mv prometheus.yml %{buildroot}%{_sysconfdir}/prometheus.yml
 mv prometheus1.yml %{buildroot}%{_sysconfdir}/prometheus1.yml
 
@@ -107,7 +106,6 @@ install -p -m 0644 node_exporter.service %{buildroot}/usr/lib/systemd/system/nod
 %{_sysconfdir}/nginx/conf.d/ssm.conf
 %{_sysconfdir}/nginx/conf.d/ssm-ssl.conf
 %{_sysconfdir}/tmpfiles.d/ssm.conf
-%{_sysconfdir}/orchestrator.conf.json
 %{_sysconfdir}/cron.daily/purge-qan-data
 %{_sysconfdir}/clickhouse-server/config.xml
 %{_datadir}/ssm-dashboards/import-dashboards.py*
