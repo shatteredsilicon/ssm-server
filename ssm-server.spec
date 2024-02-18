@@ -13,7 +13,7 @@ Summary:	Shattered Silicon Monitoring and Management Server
 
 License:	AGPLv3
 URL:		https://%{provider_prefix}
-Source0:	%{name}-%{version}.tar.gz
+Source0:	%{name}-%{version}-%{release}.tar.gz
 
 Requires:	nginx git bats
 BuildRequires:	openssl nodejs npm

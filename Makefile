@@ -1,37 +1,50 @@
-init:
-	git config core.hooksPath .githooks
-	docker run -d -p 443:443 --name pmm-server-tmp percona/pmm-server:1.7.0
-	docker exec -it pmm-server-tmp sed -i'' -e 's^/pmm/^/laboratory/^' /etc/yum.repos.d/pmm.repo
-	docker exec -it pmm-server-tmp yum-config-manager --enable percona-testing-x86_64
+BUILDDIR	?= /tmp/ssmbuild
+VERSION		?= 9.4.1
+RELEASE		?= 1
 
-check:
-	docker exec -it pmm-server-tmp sqlite3 /var/lib/grafana/grafana.db "select * from star;"
+ifeq (0, $(shell hash dpkg 2>/dev/null; echo $$?))
+ARCH	:= $(shell dpkg --print-architecture)
+else
+ARCH	:= $(shell rpm --eval "%{_arch}")
+endif
 
+TARBALL_FILE	:= $(BUILDDIR)/tarballs/ssm-server-$(VERSION)-$(RELEASE).tar.gz
+SRPM_FILE		:= $(BUILDDIR)/results/SRPMS/ssm-server-$(VERSION)-$(RELEASE).src.rpm
+RPM_FILE		:= $(BUILDDIR)/results/RPMS/ssm-server-$(VERSION)-$(RELEASE).$(ARCH).rpm
 
-reimport:
-	#docker exec -it pmm-server-tmp rm /var/lib/grafana/PERCONA_DASHBOARDS_VERSION
-	docker cp import-dashboards.py pmm-server-tmp:/usr/share/percona-dashboards/import-dashboards.py
-	docker exec -it pmm-server-tmp /usr/share/percona-dashboards/import-dashboards.py /var/lib/grafana
+.PHONY: all
+all: srpm rpm
 
+$(TARBALL_FILE):
+	mkdir -vp $(shell dirname $(TARBALL_FILE))
 
-rm:
-	docker rm -f pmm-server-tmp
+	cd password-page; \
+		npm install --no-audit --ignore-scripts --legacy-peer-deps
 
+	tar -czf $(TARBALL_FILE) -C $(shell dirname $(CURDIR)) --transform s/$(shell basename $(CURDIR))/ssm-server/ $(shell basename $(CURDIR))
 
-build-password-page: build-password-page-ami build-password-page-ovf
+.PHONY: srpm
+srpm: $(SRPM_FILE)
 
-build-password-page-docker:
-	cd password-page/ \
-	&& npm install \
-	&& npm run build:docker
+$(SRPM_FILE): $(TARBALL_FILE)
+	mkdir -vp $(BUILDDIR)/rpmbuild/{SOURCES,SPECS,BUILD,SRPMS,RPMS}
+	mkdir -vp $(shell dirname $(SRPM_FILE))
 
-build-password-page-ami:
-	cd password-page/ \
-	&& npm install \
-	&& npm run build:ami
+	cp ssm-server.spec $(BUILDDIR)/rpmbuild/SPECS/ssm-server.spec
+	sed -i "s/%{_version}/$(VERSION)/g" "$(BUILDDIR)/rpmbuild/SPECS/ssm-server.spec"
+	sed -i "s/%{_release}/$(RELEASE)/g" "$(BUILDDIR)/rpmbuild/SPECS/ssm-server.spec"
+	cp $(TARBALL_FILE) $(BUILDDIR)/rpmbuild/SOURCES/
+	rpmbuild -bs --define "debug_package %{nil}" --define "_topdir $(BUILDDIR)/rpmbuild" $(BUILDDIR)/rpmbuild/SPECS/ssm-server.spec
+	mv $(BUILDDIR)/rpmbuild/SRPMS/$(shell basename $(SRPM_FILE)) $(SRPM_FILE)
 
-build-password-page-ovf:
-	cd password-page/ \
-	&& npm install \
-	&& npm run build:ovf
+.PHONY: rpm
+rpm: $(RPM_FILE)
 
+$(RPM_FILE): $(SRPM_FILE)
+	mkdir -vp $(BUILDDIR)/mock $(shell dirname $(RPM_FILE))
+	mock -r ssm-9-$$(rpm --eval "%{_arch}") --resultdir $(BUILDDIR)/mock --rebuild $(SRPM_FILE)
+	mv $(BUILDDIR)/mock/$(shell basename $(RPM_FILE)) $(RPM_FILE)
+
+.PHONY: clean
+clean:
+	rm -rf $(BUILDDIR)/*
