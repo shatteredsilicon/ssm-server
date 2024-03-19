@@ -21,7 +21,7 @@ $(TARBALL_FILE):
 	cd password-page; \
 		npm install --no-audit --ignore-scripts --legacy-peer-deps
 
-	tar -czf $(TARBALL_FILE) -C $(shell dirname $(CURDIR)) --transform s/$(shell basename $(CURDIR))/ssm-server/ $(shell basename $(CURDIR))
+	tar -czf $(TARBALL_FILE) -C $(shell dirname $(CURDIR)) --transform s/^$(shell basename $(CURDIR))/ssm-server/ $(shell basename $(CURDIR))
 
 .PHONY: srpm
 srpm: $(SRPM_FILE)
@@ -47,4 +47,4 @@ $(RPM_FILE): $(SRPM_FILE)
 
 .PHONY: clean
 clean:
-	rm -rf $(BUILDDIR)/*
+	rm -rf $(BUILDDIR)/{tarballs,rpmbuild,mock,results}
