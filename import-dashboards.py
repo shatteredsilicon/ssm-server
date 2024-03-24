@@ -232,6 +232,17 @@ def add_datasources(api_key):
         if r.status_code != httplib.OK:
             print ' * Cannot add QAN-API Data Source'
             sys.exit(-1)
+    else:
+        print ' * Modifing QAN-API Data Source'
+        r = requests.get('%s/api/datasources/name/QAN-API' % (HOST,), headers=grafana_headers(api_key))
+        data = json.loads(r.content)
+        if data['database'] != 'ssm':
+            data['database'] = 'ssm'
+            r = requests.put('%s/api/datasources/%i' % (HOST, data['id']), data=json.dumps(data), headers=grafana_headers(api_key))
+            print r.status_code, r.content
+            if r.status_code != 200:
+                print ' * Cannot QAN-API Prometheus Data Source'
+                sys.exit(-1)
 
 
 def copy_apps():
