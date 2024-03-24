@@ -305,6 +305,8 @@ def add_datasources(api_key):
             data["secureJsonData"]["password"] = "N9mutoipdtlxutgi9rHIFnjM"
         else:
             data["secureJsonData"] = {"password": "N9mutoipdtlxutgi9rHIFnjM"}
+        if "database" in data and data["database"] != "ssm":
+            data["database"] = "ssm"
         r = requests.put(
             "%s/api/datasources/%i" % (HOST, data["id"]),
             data=json.dumps(data),
