@@ -257,3 +257,7 @@ scrape_configs:
       regex:         '.*,region_([\w]+),.*'
       target_label:  'region'
       replacement:   '$1'
+
+storage:
+  tsdb:
+    out_of_order_time_window: 10y
