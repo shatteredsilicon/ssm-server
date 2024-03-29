@@ -21,7 +21,7 @@ $(TARBALL_FILE):
 	cd password-page; \
 		npm install --no-audit --ignore-scripts --legacy-peer-deps
 
-	tar -czf $(TARBALL_FILE) -C $(shell dirname $(CURDIR)) --transform s/^$(shell basename $(CURDIR))/ssm-server/ $(shell basename $(CURDIR))
+	tar --exclude-vcs -czf $(TARBALL_FILE) -C $(shell dirname $(CURDIR)) --transform s/^$(shell basename $(CURDIR))/ssm-server/ $(shell basename $(CURDIR))
 
 .PHONY: srpm
 srpm: $(SRPM_FILE)
