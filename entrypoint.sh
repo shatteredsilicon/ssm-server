@@ -75,21 +75,19 @@ migrate_from_pmm() {
     mariadb-upgrade
 
     # Migrate database 'pmm'
-    mysqldump -R pmm > /tmp/pmm.sql
-    mysql --execute="CREATE DATABASE IF NOT EXISTS ssm;"
-    mysql ssm < /tmp/pmm.sql
+    mysql pmm -sNe 'show tables' | while read table; \
+        do mysql --execute="RENAME TABLE \`pmm\`.\`${table}\` TO \`ssm\`.\`${table}\`"; done
 
     # Migrate database 'pmm-managed'
-    mysqldump -R pmm-managed > /tmp/pmm-managed.sql
-    mysql --execute="CREATE DATABASE IF NOT EXISTS \`ssm-managed\`;"
-    mysql ssm-managed < /tmp/pmm-managed.sql
+    mysql pmm-managed -sNe 'show tables' | while read table; \
+        do mysql --execute="RENAME TABLE \`pmm-managed\`.\`${table}\` TO \`ssm-managed\`.\`${table}\`"; done
 
     # Migrate database data
     mysql --database="ssm-managed" --execute="UPDATE nodes SET \`type\` = 'ssm-server', name = 'SSM Server' WHERE \`type\` = 'pmm-server';"
 
     # drop PMM databases
-    mysql --execute="DROP DATABASE pmm;"
-    mysql --execute="DROP DATABASE \`pmm-managed\`;"
+    mysql --execute="DROP DATABASE IF EXISTS \`pmm\`;"
+    mysql --execute="DROP DATABASE IF EXISTS \`pmm-managed\`;"
 
     kill $mysql_pid
 }
@@ -125,6 +123,13 @@ if [ -f /var/lib/grafana/PERCONA_DASHBOARDS_VERSION ] && [ -f /usr/share/ssm-das
         mv /var/lib/grafana/plugins/pmm-app /tmp/pmm-app
     else
         migrate_from_ssm
+    fi
+
+    # Consul raft protocol version change from 2 to 3
+    # requires a new raft/peers.json file
+    if [ ! -f /opt/consul-data/raft/peers.json ]; then
+        consul_node_id=`cat /opt/consul-data/node-id`
+        echo "[{\"id\": \"${consul_node_id}\", \"address\": \"127.0.0.1:8500\", \"non_voter\": false}]" > /opt/consul-data/raft/peers.json
     fi
 fi
 
