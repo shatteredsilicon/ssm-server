@@ -75,21 +75,19 @@ migrate_from_pmm() {
     mariadb-upgrade
 
     # Migrate database 'pmm'
-    mysqldump -R pmm > /tmp/pmm.sql
-    mysql --execute="CREATE DATABASE IF NOT EXISTS ssm;"
-    mysql ssm < /tmp/pmm.sql
+    mysql pmm -sNe 'show tables' | while read table; \
+        do mysql --execute="RENAME TABLE \`pmm\`.\`${table}\` TO \`ssm\`.\`${table}\`"; done
 
     # Migrate database 'pmm-managed'
-    mysqldump -R pmm-managed > /tmp/pmm-managed.sql
-    mysql --execute="CREATE DATABASE IF NOT EXISTS \`ssm-managed\`;"
-    mysql ssm-managed < /tmp/pmm-managed.sql
+    mysql pmm-managed -sNe 'show tables' | while read table; \
+        do mysql --execute="RENAME TABLE \`pmm-managed\`.\`${table}\` TO \`ssm-managed\`.\`${table}\`"; done
 
     # Migrate database data
     mysql --database="ssm-managed" --execute="UPDATE nodes SET \`type\` = 'ssm-server', name = 'SSM Server' WHERE \`type\` = 'pmm-server';"
 
     # drop PMM databases
-    mysql --execute="DROP DATABASE pmm;"
-    mysql --execute="DROP DATABASE \`pmm-managed\`;"
+    mysql --execute="DROP DATABASE IF EXISTS \`pmm\`;"
+    mysql --execute="DROP DATABASE IF EXISTS \`pmm-managed\`;"
 
     kill $mysql_pid
 }
