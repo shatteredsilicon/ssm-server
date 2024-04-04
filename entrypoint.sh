@@ -124,6 +124,13 @@ if [ -f /var/lib/grafana/PERCONA_DASHBOARDS_VERSION ] && [ -f /usr/share/ssm-das
     else
         migrate_from_ssm
     fi
+
+    # Consul raft protocol version change from 2 to 3
+    # requires a new raft/peers.json file
+    if [ ! -f /opt/consul-data/raft/peers.json ]; then
+        consul_node_id=`cat /opt/consul-data/node-id`
+        echo "[{\"id\": \"${consul_node_id}\", \"address\": \"127.0.0.1:8500\", \"non_voter\": false}]" > /opt/consul-data/raft/peers.json
+    fi
 fi
 
 # Debug
