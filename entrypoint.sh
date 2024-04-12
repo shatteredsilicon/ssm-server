@@ -74,6 +74,9 @@ migrate_from_pmm() {
     # Migrate mysql to mariadb
     mariadb-upgrade
 
+    # Create new SSM databases
+    mysql --execute="CREATE DATABASE IF NOT EXISTS \`ssm\`; CREATE DATABASE IF NOT EXISTS \`ssm-managed\`"
+
     # Migrate database 'pmm'
     mysql pmm -sNe 'show tables' | while read table; \
         do mysql --execute="RENAME TABLE \`pmm\`.\`${table}\` TO \`ssm\`.\`${table}\`"; done
