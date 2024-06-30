@@ -145,6 +145,16 @@ fi
 
 cat /tmp/ssm.ini > /etc/supervisord.d/ssm.ini
 rm -rf /tmp/ssm.ini
+
+# Consul disallows rejoining the cluster if the server
+# has not ran after a period, which is not very suitable
+# for the use case in SSM, see https://github.com/hashicorp/consul/issues/20110.
+# Deleting /opt/consul-data/server_metadata.json allows it
+# rejoining the cluster, as described in https://developer.hashicorp.com/consul/docs/agent/config/config-files#server_rejoin_age_max.
+if [ -f /opt/consul-data/server_metadata.json ]; then
+    rm -f /opt/consul-data/server_metadata.json
+fi
+
 # Start supervisor in foreground
 if [ -z "${UPDATE_MODE}" ]; then
     exec supervisord -n -c /etc/supervisord.conf
