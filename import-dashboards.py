@@ -270,13 +270,14 @@ def add_datasources(api_key):
             print(" * Cannot add CloudWatch Data Source")
             sys.exit(-1)
 
+    qan_db_url = "/var/lib/mysql/mysql.sock"
     if "QAN-API" not in ds:
         print(" * QAN-API Data Source")
         data = json.dumps(
             {
                 "name": "QAN-API",
                 "type": "mysql",
-                "url": "localhost:3306",
+                "url": qan_db_url,
                 "access": "proxy",
                 "jsonData": {},
                 "secureJsonFields": {},
@@ -307,6 +308,8 @@ def add_datasources(api_key):
             data["secureJsonData"] = {"password": "N9mutoipdtlxutgi9rHIFnjM"}
         if "database" in data and data["database"] != "ssm":
             data["database"] = "ssm"
+        if "url" not in data or data["url"] != qan_db_url:
+            data["url"] = qan_db_url
         r = requests.put(
             "%s/api/datasources/%i" % (HOST, data["id"]),
             data=json.dumps(data),
