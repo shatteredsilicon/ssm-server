@@ -21,3 +21,7 @@ CREATE TABLE IF NOT EXISTS `ssm`.`query_user_sources` (
   host            VARCHAR(255) CHARSET 'utf8' NOT NULL,
   PRIMARY KEY (query_class_id, instance_id, ts, user, host)
 );
+
+CREATE USER IF NOT EXISTS 'ssm'@'localhost' IDENTIFIED BY 'ssm' WITH MAX_USER_CONNECTIONS 10;
+GRANT SELECT, PROCESS, SUPER, REPLICATION CLIENT, RELOAD ON *.* TO 'ssm'@'localhost';
+GRANT SELECT, UPDATE, DELETE, DROP ON performance_schema.* TO 'ssm'@'localhost';
