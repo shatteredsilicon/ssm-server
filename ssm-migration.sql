@@ -13,13 +13,21 @@ ALTER TABLE `ssm`.`query_class_metrics`
 ADD INDEX instance_start (instance_id, start_ts),
 ALGORITHM=INPLACE, LOCK=NONE;
 
+CREATE TABLE IF NOT EXISTS `ssm`.`user_classes` (
+  id    INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user  VARCHAR(80) NOT NULL,
+  host  VARCHAR(60) NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY (user, host)
+);
+
 CREATE TABLE IF NOT EXISTS `ssm`.`query_user_sources` (
   query_class_id  INT UNSIGNED NOT NULL,
   instance_id     INT UNSIGNED NOT NULL,
-  ts              TIMESTAMP(6) NOT NULL,
-  user            VARCHAR(128) CHARSET 'utf8' NOT NULL,
-  host            VARCHAR(255) CHARSET 'utf8' NOT NULL,
-  PRIMARY KEY (query_class_id, instance_id, ts, user, host)
+  user_class_id   INT UNSIGNED NOT NULL,
+  ts              TIMESTAMP NOT NULL,
+  count           INT UNSIGNED NOT NULL,
+  PRIMARY KEY (query_class_id, instance_id, user_class_id, ts)
 );
 
 CREATE USER IF NOT EXISTS 'ssm'@'localhost' IDENTIFIED BY 'ssm' WITH MAX_USER_CONNECTIONS 10;
