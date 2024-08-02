@@ -41,6 +41,16 @@ SET_OF_TAGS = {
     "SSM": 0,
     "Silicon": 0,
 }
+PMM_PANEL_REPLACE_DICT = {
+    'pmm-app': 'ssm-app',
+    'pmm-add-instance-app-panel': 'ssm-add-instance-app-panel',
+    'pmm-qan-app-panel': 'ssm-qan-app-panel',
+    'pmm-qan-settings-app-panel': 'ssm-qan-settings-app-panel',
+    'pmm-remote-instances-panel': 'ssm-remote-instances-panel',
+    'pmm-singlestat-panel': 'ssm-singlestat-panel',
+    'pmm-system-summary-app-panel': 'ssm-system-summary-app-panel',
+    'pmm-update-panel': 'ssm-update-panel'
+}
 YEAR = str(datetime.date.today())[:4]
 CONTENT = (
     """<center>
@@ -88,7 +98,7 @@ def get_api_key():
     """
 
     alphanum = string.digits + string.ascii_uppercase + string.ascii_uppercase.lower()
-    name = "PMM Import " + "".join(random.choice(alphanum) for _ in range(16))
+    name = "SSM Import " + "".join(random.choice(alphanum) for _ in range(16))
     key = "".join(random.choice(alphanum) for _ in range(32))
     api_key = base64.b64encode(json.dumps({"k": key, "n": name, "id": 1}).encode())
     db_key = binascii.hexlify(
@@ -179,6 +189,35 @@ def delete_api_key(db_key, upgrade):
     con.close()
 
 
+def rename_pmm_app():
+    con = sqlite3.connect(GRAFANA_DB_DIR + "/grafana.db", isolation_level="EXCLUSIVE")
+    cur = con.cursor()
+
+    cur.execute(
+        "UPDATE plugin_setting "
+        "SET plugin_id = ? "
+        "WHERE plugin_id = ?",
+        (SSM_APP_NAME, map_app_name(SSM_APP_NAME)),
+    )
+
+    con.commit()
+    con.close()
+
+
+def remove_pmm_dashboards():
+    con = sqlite3.connect(GRAFANA_DB_DIR + "/grafana.db", isolation_level="EXCLUSIVE")
+    cur = con.cursor()
+
+    cur.execute(
+        "DELETE FROM dashboard "
+        "WHERE plugin_id = ?",
+        (map_app_name(SSM_APP_NAME),),
+    )
+
+    con.commit()
+    con.close()
+
+
 def fix_cloudwatch_datasource():
     """
     Replaces incorrect CloudWatch datasource stored as JSON string with correct JSON object.
@@ -207,6 +246,20 @@ def fix_cloudwatch_datasource():
 
     con.commit()
     con.close()
+
+
+def import_apps(api_key):
+    for app in [SSM_APP_NAME]:
+        data = json.dumps({"enabled": True})
+        r = requests.post(
+            "%s/api/plugins/%s/settings" % (HOST, app),
+            data=data,
+            headers=grafana_headers(api_key),
+        )
+        print(" * Plugin enable result: %r %r" % (r.status_code, r.content))
+        if r.status_code != http.client.OK:
+            print(" * Cannot enable %s app" % app)
+            sys.exit(-1)
 
 
 def add_datasources(api_key):
@@ -338,32 +391,6 @@ def map_app_name(app_name):
     return app_name
 
 
-def import_apps(api_key):
-    for app in [SSM_APP_NAME]:
-        print(" * Importing %r" % (app,))
-        data = json.dumps({"enabled": False})
-        r = requests.post(
-            "%s/api/plugins/%s/settings" % (HOST, map_app_name(app)),
-            data=data,
-            headers=grafana_headers(api_key),
-        )
-        print(" * Plugin disable result: %r %r" % (r.status_code, r.content))
-        if r.status_code != http.client.OK:
-            print(" * Cannot dissable %s app" % app)
-            sys.exit(-1)
-
-        data = json.dumps({"enabled": True})
-        r = requests.post(
-            "%s/api/plugins/%s/settings" % (HOST, map_app_name(app)),
-            data=data,
-            headers=grafana_headers(api_key),
-        )
-        print(" * Plugin enable result: %r %r" % (r.status_code, r.content))
-        if r.status_code != http.client.OK:
-            print(" * Cannot enable %s app" % app)
-            sys.exit(-1)
-
-
 def get_folders(api_key):
     r = requests.get("%s/api/folders" % (HOST,), headers=grafana_headers(api_key))
     for x in json.loads(r.content):
@@ -387,22 +414,41 @@ def add_folders(api_key):
         SET_OF_TAGS[folder] = data["id"]
 
 
-def move_into_folders():
-    print(" * Moving dashboards into folders")
+def adjust_dashboards():
+    print(" * Adjusting dashboards' folder and data")
     con = sqlite3.connect(GRAFANA_DB_DIR + "/grafana.db", isolation_level="EXCLUSIVE")
     cur = con.cursor()
     cur.execute("SELECT data FROM dashboard WHERE is_folder = 0")
     for row in cur.fetchall():
         try:
             data = json.loads(row[0])
-            tag = data["tags"][0]
         except:
             continue
-        if tag == "Percona":
-            try:
+
+        if 'panels' in data and type(data['panels']) is list:
+            changed = False
+            for i, _ in enumerate(data['panels']):
+                if 'type' in data['panels'][i] and data['panels'][i]['type'] in PMM_PANEL_REPLACE_DICT:
+                    data['panels'][i]['type'] = PMM_PANEL_REPLACE_DICT[data['panels'][i]['type']]
+                    changed = True
+
+            if changed:
+                try:
+                    cur.execute(
+                        "UPDATE dashboard SET data = ? WHERE uid = ?",
+                        (json.dumps(data), data["uid"]),
+                    )
+                    print("   * Replacing pmm panels in dashboard: %s" % (data["title"],))
+                except Exception as err:
+                    print("   * Replacing pmm panels in dashboard %s failed: %s" % (data["title"], str(err)))
+
+        try:
+            tag = data["tags"][0]
+            if tag == "Percona":
                 tag = data["tags"][1]
-            except:
-                continue
+        except:
+            continue
+
         try:
             print(
                 "   * Uid: %r, Dashboard: %r, Tags: %r"
@@ -423,13 +469,13 @@ def move_into_folders():
 
 def add_demo_footer():
     # Add Copyright&Legal footer into dashboards
-    # It's used only for a pmmdemo installation
+    # It's used only for a ssm demo installation
     print(" * adding Copyright&Legal footer into dashboards")
     source_dir = "/usr/share/ssm-dashboards/%s/dist/dashboards/" % (SSM_APP_NAME)
     dirs = os.listdir(source_dir)
 
     for d_file in dirs:
-        if fnmatch.fnmatch(d_file, "pmm-*.json"):
+        if fnmatch.fnmatch(d_file, "ssm-*.json"):
             continue
 
         with open(source_dir + d_file, "r") as dashboard_file:
@@ -473,7 +519,7 @@ def set_home_dashboard(api_key):
 
     cur.execute(
         "SELECT id FROM dashboard WHERE slug = 'home-dashboard' AND plugin_id = ?",
-        (map_app_name(SSM_APP_NAME),),
+        (SSM_APP_NAME,),
     )
     row = cur.fetchone()
     if not row:
@@ -491,7 +537,7 @@ def set_home_dashboard(api_key):
     )
     print(" * Preferences set: %r %r" % (r.status_code, r.content))
 
-    # Copy pmm logo to the grafana directory
+    # Copy ssm logo to the grafana directory
     if os.path.isfile(LOGO_FILE) and os.access(LOGO_FILE, os.R_OK):
         print(" * Copying %r to grafana directory %r" % (LOGO_FILE, GRAFANA_IMG_DR))
         shutil.copy(LOGO_FILE, GRAFANA_IMG_DR)
@@ -514,6 +560,7 @@ def main():
     try:
         #  add_demo_footer()
         copy_apps()
+        rename_pmm_app()
         add_api_key(name, db_key)
         fix_cloudwatch_datasource()
     finally:
@@ -525,10 +572,13 @@ def main():
     add_folders(api_key)
     get_folders(api_key)
     import_apps(api_key)
-    move_into_folders()
+
+    stop_grafana()
+
+    remove_pmm_dashboards()
+    adjust_dashboards()
 
     # restart Grafana to load app and set home dashboard below
-    stop_grafana()
     start_grafana()
     wait_for_grafana_start()
     time.sleep(10)
