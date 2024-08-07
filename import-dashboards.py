@@ -250,6 +250,18 @@ def fix_cloudwatch_datasource():
 
 def import_apps(api_key):
     for app in [SSM_APP_NAME]:
+        print(" * Importing %r" % (app,))
+        data = json.dumps({"enabled": False})
+        r = requests.post(
+            "%s/api/plugins/%s/settings" % (HOST, app),
+            data=data,
+            headers=grafana_headers(api_key),
+        )
+        print(" * Plugin disable result: %r %r" % (r.status_code, r.content))
+        if r.status_code != http.client.OK:
+            print(" * Cannot dissable %s app" % app)
+            sys.exit(-1)
+
         data = json.dumps({"enabled": True})
         r = requests.post(
             "%s/api/plugins/%s/settings" % (HOST, app),
