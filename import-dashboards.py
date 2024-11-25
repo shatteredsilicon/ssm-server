@@ -525,42 +525,6 @@ def add_demo_footer():
             print("Dashboard -> %s - %s" % (d_file, "Done"))
 
 
-def set_home_dashboard(api_key):
-    con = sqlite3.connect(GRAFANA_DB_DIR + "/grafana.db", isolation_level="EXCLUSIVE")
-    cur = con.cursor()
-
-    cur.execute(
-        "SELECT id FROM dashboard WHERE slug = 'home-dashboard' AND plugin_id = ?",
-        (SSM_APP_NAME,),
-    )
-    row = cur.fetchone()
-    if not row:
-        print(" * Select home dashboard id from db failed, no row found")
-        return
-
-    con.commit()
-    con.close()
-
-    data = json.dumps({"homeDashboardId": row[0]})
-    r = requests.post(
-        "%s/api/preferences/set-home-dash" % (HOST,),
-        data=data,
-        headers=grafana_headers(api_key),
-    )
-    print(" * Preferences set: %r %r" % (r.status_code, r.content))
-
-    # Copy ssm logo to the grafana directory
-    if os.path.isfile(LOGO_FILE) and os.access(LOGO_FILE, os.R_OK):
-        print(" * Copying %r to grafana directory %r" % (LOGO_FILE, GRAFANA_IMG_DR))
-        shutil.copy(LOGO_FILE, GRAFANA_IMG_DR)
-
-    # # Set home dashboard.
-    # cur.execute("REPLACE INTO star (user_id, dashboard_id) "
-    #             "SELECT 1, id from dashboard WHERE slug='home'")
-    # cur.execute("REPLACE INTO preferences (id, org_id, user_id, version, home_dashboard_id, timezone, theme, created, updated) "
-    #             "SELECT 1, 1, 0, 0, id, '', '', datetime('now'), datetime('now') from dashboard WHERE slug='home'")
-
-
 def main():
     print("Grafana database directory: %s" % (GRAFANA_DB_DIR,))
     upgrade = check_dashboards_version()
@@ -594,8 +558,6 @@ def main():
     start_grafana()
     wait_for_grafana_start()
     time.sleep(10)
-
-    set_home_dashboard(api_key)
 
     # modify database when Grafana is stopped to avoid a data race
     stop_grafana()
