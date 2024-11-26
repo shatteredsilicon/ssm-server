@@ -525,6 +525,12 @@ def add_demo_footer():
             print("Dashboard -> %s - %s" % (d_file, "Done"))
 
 
+def set_home_logo():
+    if os.path.isfile(LOGO_FILE) and os.access(LOGO_FILE, os.R_OK):
+        print(" * Copying %r to grafana directory %r" % (LOGO_FILE, GRAFANA_IMG_DR))
+        shutil.copy(LOGO_FILE, GRAFANA_IMG_DR)
+
+
 def main():
     print("Grafana database directory: %s" % (GRAFANA_DB_DIR,))
     upgrade = check_dashboards_version()
@@ -558,6 +564,8 @@ def main():
     start_grafana()
     wait_for_grafana_start()
     time.sleep(10)
+
+    set_home_logo()
 
     # modify database when Grafana is stopped to avoid a data race
     stop_grafana()
