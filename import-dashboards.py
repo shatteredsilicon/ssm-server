@@ -40,6 +40,7 @@ SET_OF_TAGS = {
     "Insight": 0,
     "SSM": 0,
     "Silicon": 0,
+    "Alerts": 0
 }
 PMM_PANEL_REPLACE_DICT = {
     'pmm-app': 'ssm-app',
