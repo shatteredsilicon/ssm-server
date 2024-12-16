@@ -394,7 +394,7 @@ def copy_apps():
         if os.path.isdir(source_dir):
             print(" * Copying %r" % (app,))
             shutil.rmtree(dest_dir, True)
-            shutil.copytree(source_dir, dest_dir)
+            subprocess.run(["cp", "-r", source_dir, dest_dir])
 
 
 def map_app_name(app_name):
@@ -529,7 +529,7 @@ def add_demo_footer():
 def set_home_logo():
     if os.path.isfile(LOGO_FILE) and os.access(LOGO_FILE, os.R_OK):
         print(" * Copying %r to grafana directory %r" % (LOGO_FILE, GRAFANA_IMG_DR))
-        shutil.copy(LOGO_FILE, GRAFANA_IMG_DR)
+        subprocess.run(["cp", "-f", LOGO_FILE, GRAFANA_IMG_DR])
 
 
 def main():
@@ -575,7 +575,7 @@ def main():
     finally:
         start_grafana()
 
-    shutil.copyfile(NEW_VERSION_FILE, OLD_VERSION_FILE)
+    subprocess.run(["cp", "-f", NEW_VERSION_FILE, OLD_VERSION_FILE])
 
 
 if __name__ == "__main__":
