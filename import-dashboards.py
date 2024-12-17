@@ -238,8 +238,11 @@ def fix_cloudwatch_datasource():
         except:
             pass
 
-        if not isinstance(old, dict):
-            new = {"authType": "keys"}
+        if not isinstance(old, dict) or 'region' not in old:
+            new = {
+                "authType": "keys",
+                "region": "af-south-1"
+            }
             cur.execute(
                 "UPDATE data_source SET json_data = ? WHERE id = ?",
                 (json.dumps(new), row[0]),
@@ -323,7 +326,10 @@ def add_datasources(api_key):
             {
                 "name": "CloudWatch",
                 "type": "cloudwatch",
-                "jsonData": {"authType": "keys"},
+                "jsonData": {
+                    "authType": "keys",
+                    "region": "af-south-1"
+                },
                 "access": "proxy",
                 "isDefault": False,
             }
