@@ -113,13 +113,14 @@ migrate_from_ssm() {
     kill $mysql_pid
 }
 
+# Always do this in case the uids/gids changed
+chown -R mysql:mysql /var/lib/mysql
+chown -R ssm:ssm /opt/consul-data
+chown -R ssm:ssm /opt/prometheus/data
+chown -R grafana:grafana /var/lib/grafana
+
 # Upgrade
 if [ -f /var/lib/grafana/PERCONA_DASHBOARDS_VERSION ] && [ -f /usr/share/ssm-dashboards/VERSION ] && [[ "$(cat /usr/share/ssm-dashboards/VERSION)" > "$(cat /var/lib/grafana/PERCONA_DASHBOARDS_VERSION)" ]]; then
-    chown -R mysql:mysql /var/lib/mysql
-    chown -R ssm:ssm /opt/consul-data
-    chown -R ssm:ssm /opt/prometheus/data
-    chown -R grafana:grafana /var/lib/grafana
-
     # Check if it's a upgrade from PMM
     if [[ -d /var/lib/grafana/plugins/pmm-app ]]; then
         migrate_from_pmm
