@@ -399,6 +399,8 @@ def copy_apps():
         dest_dir = "/var/lib/grafana/plugins/" + app
         if os.path.isdir(source_dir):
             print(" * Copying %r" % (app,))
+            if not os.path.isdir(os.path.dirname(dest_dir)):
+                subprocess.run(["mkdir", "-p", os.path.dirname(dest_dir)])
             shutil.rmtree(dest_dir, True)
             subprocess.run(["cp", "-r", source_dir, dest_dir])
 
