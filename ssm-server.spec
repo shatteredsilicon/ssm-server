@@ -103,6 +103,7 @@ install -p -m 0644 node_exporter.service %{buildroot}/usr/lib/systemd/system/nod
 %{_sysconfdir}/my.cnf.d
 %{_sysconfdir}/sysconfig
 %{_sysconfdir}/supervisord.d
+%{_sysconfdir}/consul
 %{_sysconfdir}/prometheus.yml
 %{_sysconfdir}/prometheus1.yml
 %{_sysconfdir}/nginx/.htpasswd
