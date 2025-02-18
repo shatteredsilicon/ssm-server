@@ -63,6 +63,9 @@ mv prometheus1.yml %{buildroot}%{_sysconfdir}/prometheus1.yml
 install -d %{buildroot}%{_sysconfdir}/clickhouse-server
 mv clickhouse.xml %{buildroot}%{_sysconfdir}/clickhouse-server/config.xml
 
+install -d %{buildroot}%{_sysconfdir}/consul
+mv consul.json %{buildroot}%{_sysconfdir}/consul/consul.json
+
 install -d %{buildroot}%{_sysconfdir}/my.cnf.d
 mv my.cnf %{buildroot}%{_sysconfdir}/my.cnf.d/00-ssm.cnf
 mv page.cnf %{buildroot}%{_sysconfdir}/my.cnf.d/page.cnf
