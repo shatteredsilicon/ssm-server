@@ -40,8 +40,6 @@ sed -i "s/v[0-9].[0-9].[0-9]/v%{version}/" landing-page/index.html
 
 
 %build
-export NG_CLI_ANALYTICS="false"
-cd password-page && npm run build:ami && npm run build:ovf
 
 
 %install
@@ -56,12 +54,8 @@ mv import-dashboards.py %{buildroot}%{_datadir}/ssm-dashboards/import-dashboards
 install -d %{buildroot}%{_sysconfdir}/tmpfiles.d
 mv tmpfiles.d-ssm.conf %{buildroot}%{_sysconfdir}/tmpfiles.d/ssm.conf
 
-mv sysconfig %{buildroot}%{_sysconfdir}/sysconfig
 mv prometheus.yml %{buildroot}%{_sysconfdir}/prometheus.yml
 mv prometheus1.yml %{buildroot}%{_sysconfdir}/prometheus1.yml
-
-install -d %{buildroot}%{_sysconfdir}/clickhouse-server
-mv clickhouse.xml %{buildroot}%{_sysconfdir}/clickhouse-server/config.xml
 
 install -d %{buildroot}%{_sysconfdir}/consul
 mv consul.json %{buildroot}%{_sysconfdir}/consul/consul.json
@@ -75,7 +69,6 @@ mv supervisord.conf %{buildroot}%{_sysconfdir}/supervisord.d/ssm.ini
 
 install -d %{buildroot}%{_datadir}/%{name}/landing-page/img
 cp -pav ./entrypoint.sh %{buildroot}%{_datadir}/%{name}/entrypoint.sh
-cp -pav ./password-page/dist %{buildroot}%{_datadir}/%{name}/password-page
 cp -pav ./landing-page/img/ssm-logo.png %{buildroot}%{_datadir}/%{name}/landing-page/img/ssm-logo.png
 cp -pav ./zz-debug.cnf %{buildroot}%{_datadir}/%{name}/zz-debug.cnf
 cp -pav ./ssm-migration.sql %{buildroot}%{_datadir}/%{name}/ssm-migration.sql
@@ -101,7 +94,6 @@ install -p -m 0644 node_exporter.service %{buildroot}/usr/lib/systemd/system/nod
 %license LICENSE
 %doc README.md CHANGELOG.md
 %{_sysconfdir}/my.cnf.d
-%{_sysconfdir}/sysconfig
 %{_sysconfdir}/supervisord.d
 %{_sysconfdir}/consul
 %{_sysconfdir}/prometheus.yml
@@ -111,7 +103,6 @@ install -p -m 0644 node_exporter.service %{buildroot}/usr/lib/systemd/system/nod
 %{_sysconfdir}/nginx/conf.d/ssm-ssl.conf
 %{_sysconfdir}/tmpfiles.d/ssm.conf
 %{_sysconfdir}/cron.daily/purge-qan-data
-%{_sysconfdir}/clickhouse-server/config.xml
 %{_datadir}/ssm-dashboards/import-dashboards.py*
 %{_datadir}/%{name}
 /usr/lib/systemd/system/node_exporter.service
