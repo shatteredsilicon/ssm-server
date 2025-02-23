@@ -16,14 +16,6 @@ URL:		https://%{provider_prefix}
 Source0:	%{name}-%{version}-%{release}.tar.gz
 
 Requires:	nginx git bats
-BuildRequires:	openssl nodejs npm
-
-%if 0%{?fedora} || 0%{?rhel} == 7
-BuildRequires: systemd
-Requires(post): systemd
-Requires(preun): systemd
-Requires(postun): systemd
-%endif
 
 
 %description
@@ -36,7 +28,6 @@ See the SSM docs for more information.
 sed -i "s/ENV_SERVER_USER/${SERVER_USER:-ssm}/g" prometheus.yml prometheus1.yml
 sed -i "s/ENV_SERVER_PASSWORD/${SERVER_PASSWORD:-ssm}/g" prometheus.yml prometheus1.yml
 echo "${SERVER_USER:-ssm}:$(openssl passwd -apr1 ${SERVER_PASSWORD:-ssm})" > .htpasswd
-sed -i "s/v[0-9].[0-9].[0-9]/v%{version}/" landing-page/index.html
 
 
 %build
@@ -73,22 +64,6 @@ cp -pav ./landing-page/img/ssm-logo.png %{buildroot}%{_datadir}/%{name}/landing-
 cp -pav ./zz-debug.cnf %{buildroot}%{_datadir}/%{name}/zz-debug.cnf
 cp -pav ./ssm-migration.sql %{buildroot}%{_datadir}/%{name}/ssm-migration.sql
 
-install -d %{buildroot}/usr/lib/systemd/system
-install -p -m 0644 node_exporter.service %{buildroot}/usr/lib/systemd/system/node_exporter.service
-
-
-%post
-/usr/bin/systemd-tmpfiles --create
-%systemd_post node_exporter.service
-
-
-%preun
-%systemd_preun node_exporter.service
-
-
-%postun
-%systemd_postun node_exporter.service
-
 
 %files
 %license LICENSE
@@ -105,7 +80,6 @@ install -p -m 0644 node_exporter.service %{buildroot}/usr/lib/systemd/system/nod
 %{_sysconfdir}/cron.daily/purge-qan-data
 %{_datadir}/ssm-dashboards/import-dashboards.py*
 %{_datadir}/%{name}
-/usr/lib/systemd/system/node_exporter.service
 
 
 %changelog
