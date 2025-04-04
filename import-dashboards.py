@@ -28,6 +28,8 @@ NEW_VERSION_FILE = SCRIPT_DIR + "/VERSION"
 OLD_VERSION_FILE = GRAFANA_DB_DIR + "/PERCONA_DASHBOARDS_VERSION"
 HOST = "http://127.0.0.1:3000"
 LOGO_FILE = "/usr/share/ssm-server/landing-page/img/ssm-logo.png"
+FAVICON_FILE = "/usr/share/ssm-server/landing-page/img/fav32.png"
+GRAFANA_LOGO_FILE = "/usr/share/ssm-server/landing-page/img/grafana_icon.svg"
 SSM_APP_NAME = "ssm-app"
 SET_OF_TAGS = {
     "QAN": 0,
@@ -534,10 +536,18 @@ def add_demo_footer():
             print("Dashboard -> %s - %s" % (d_file, "Done"))
 
 
-def set_home_logo():
+def set_logos():
     if os.path.isfile(LOGO_FILE) and os.access(LOGO_FILE, os.R_OK):
         print(" * Copying %r to grafana directory %r" % (LOGO_FILE, GRAFANA_IMG_DR))
         subprocess.run(["cp", "-f", LOGO_FILE, GRAFANA_IMG_DR])
+
+    if os.path.isfile(FAVICON_FILE) and os.access(FAVICON_FILE, os.R_OK):
+        print(" * Copying %r to grafana directory %r" % (FAVICON_FILE, GRAFANA_IMG_DR))
+        subprocess.run(["cp", "-f", FAVICON_FILE, GRAFANA_IMG_DR])
+
+    if os.path.isfile(GRAFANA_LOGO_FILE) and os.access(GRAFANA_LOGO_FILE, os.R_OK):
+        print(" * Copying %r to grafana directory %r" % (GRAFANA_LOGO_FILE, GRAFANA_IMG_DR))
+        subprocess.run(["cp", "-f", GRAFANA_LOGO_FILE, GRAFANA_IMG_DR])
 
 
 def main():
@@ -574,7 +584,7 @@ def main():
     wait_for_grafana_start()
     time.sleep(10)
 
-    set_home_logo()
+    set_logos()
 
     # modify database when Grafana is stopped to avoid a data race
     stop_grafana()
