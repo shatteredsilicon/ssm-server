@@ -60,7 +60,7 @@ mv supervisord.conf %{buildroot}%{_sysconfdir}/supervisord.d/ssm.ini
 
 install -d %{buildroot}%{_datadir}/%{name}/landing-page/img
 cp -pav ./entrypoint.sh %{buildroot}%{_datadir}/%{name}/entrypoint.sh
-cp -pav ./landing-page/img/ssm-logo.png %{buildroot}%{_datadir}/%{name}/landing-page/img/ssm-logo.png
+cp -pav ./landing-page/img/* %{buildroot}%{_datadir}/%{name}/landing-page/img/
 cp -pav ./zz-debug.cnf %{buildroot}%{_datadir}/%{name}/zz-debug.cnf
 cp -pav ./ssm-migration.sql %{buildroot}%{_datadir}/%{name}/ssm-migration.sql
 
