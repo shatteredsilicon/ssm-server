@@ -30,6 +30,9 @@ HOST = "http://127.0.0.1:3000"
 LOGO_FILE = "/usr/share/ssm-server/landing-page/img/ssm-logo.png"
 FAVICON_FILE = "/usr/share/ssm-server/landing-page/img/fav32.png"
 GRAFANA_LOGO_FILE = "/usr/share/ssm-server/landing-page/img/grafana_icon.svg"
+GRAFANA_APPLE_TOUCH_ICON_FILE = "/usr/share/ssm-server/landing-page/img/apple-touch-icon.png"
+GRAFANA_MASK_ICON_FILE = os.path.join(GRAFANA_IMG_DR, "grafana_mask_icon.svg")
+GRAFANA_MSTILE_FILE = os.path.join(GRAFANA_IMG_DR, "mstile-150x150.png")
 SSM_APP_NAME = "ssm-app"
 SET_OF_TAGS = {
     "QAN": 0,
@@ -548,6 +551,18 @@ def set_logos():
     if os.path.isfile(GRAFANA_LOGO_FILE) and os.access(GRAFANA_LOGO_FILE, os.R_OK):
         print(" * Copying %r to grafana directory %r" % (GRAFANA_LOGO_FILE, GRAFANA_IMG_DR))
         subprocess.run(["cp", "-f", GRAFANA_LOGO_FILE, GRAFANA_IMG_DR])
+
+    if os.path.isfile(GRAFANA_APPLE_TOUCH_ICON_FILE) and os.access(GRAFANA_APPLE_TOUCH_ICON_FILE, os.R_OK):
+        print(" * Copying %r to grafana directory %r" % (GRAFANA_APPLE_TOUCH_ICON_FILE, GRAFANA_IMG_DR))
+        subprocess.run(["cp", "-f", GRAFANA_APPLE_TOUCH_ICON_FILE, GRAFANA_IMG_DR])
+
+    if os.path.isfile(GRAFANA_MASK_ICON_FILE) and os.access(GRAFANA_MASK_ICON_FILE, os.W_OK):
+        print(" * Removing grafana mask icon %r" % (GRAFANA_MASK_ICON_FILE))
+        subprocess.run(["rm", "-f", GRAFANA_MASK_ICON_FILE])
+
+    if os.path.isfile(GRAFANA_MSTILE_FILE) and os.access(GRAFANA_MSTILE_FILE, os.W_OK):
+        print(" * Removing grafana mask icon %r" % (GRAFANA_MSTILE_FILE))
+        subprocess.run(["rm", "-f", GRAFANA_MSTILE_FILE])
 
 
 def main():
