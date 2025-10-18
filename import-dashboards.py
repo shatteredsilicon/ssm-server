@@ -47,15 +47,12 @@ SET_OF_TAGS = {
     "Silicon": 0,
     "Alerts": 0
 }
-PMM_PANEL_REPLACE_DICT = {
-    'pmm-app': 'ssm-app',
-    'pmm-add-instance-app-panel': 'ssm-add-instance-app-panel',
-    'pmm-qan-app-panel': 'ssm-qan-app-panel',
-    'pmm-qan-settings-app-panel': 'ssm-qan-settings-app-panel',
-    'pmm-remote-instances-panel': 'ssm-remote-instances-panel',
-    'pmm-singlestat-panel': 'ssm-singlestat-panel',
-    'pmm-system-summary-app-panel': 'ssm-system-summary-app-panel',
-    'pmm-update-panel': 'ssm-update-panel'
+PANEL_REPLACE_DICT = {
+    'ssm-add-instance-app-panel': 'ssm-add-instance-panel',
+    'ssm-qan-app-panel': 'ssm-qan-panel',
+    'ssm-qan-settings-app-panel': 'ssm-qan-settings-panel',
+    'ssm-remote-instances-panel': 'ssm-monitored-instances-panel',
+    'ssm-system-summary-app-panel': 'ssm-system-summary-panel'
 }
 YEAR = str(datetime.date.today())[:4]
 CONTENT = (
@@ -190,21 +187,6 @@ def delete_api_key(db_key, upgrade):
     cur = con.cursor()
 
     cur.execute("DELETE FROM api_key WHERE key = ?", (db_key,))
-
-    con.commit()
-    con.close()
-
-
-def rename_pmm_app():
-    con = sqlite3.connect(GRAFANA_DB_DIR + "/grafana.db", isolation_level="EXCLUSIVE")
-    cur = con.cursor()
-
-    cur.execute(
-        "UPDATE plugin_setting "
-        "SET plugin_id = ? "
-        "WHERE plugin_id = ?",
-        (SSM_APP_NAME, map_app_name(SSM_APP_NAME)),
-    )
 
     con.commit()
     con.close()
@@ -454,8 +436,8 @@ def adjust_dashboards():
         if 'panels' in data and type(data['panels']) is list:
             changed = False
             for i, _ in enumerate(data['panels']):
-                if 'type' in data['panels'][i] and data['panels'][i]['type'] in PMM_PANEL_REPLACE_DICT:
-                    data['panels'][i]['type'] = PMM_PANEL_REPLACE_DICT[data['panels'][i]['type']]
+                if 'type' in data['panels'][i] and data['panels'][i]['type'] in PANEL_REPLACE_DICT:
+                    data['panels'][i]['type'] = PANEL_REPLACE_DICT[data['panels'][i]['type']]
                     changed = True
 
             if changed:
@@ -576,7 +558,6 @@ def main():
     try:
         #  add_demo_footer()
         copy_apps()
-        rename_pmm_app()
         add_api_key(name, db_key)
         fix_cloudwatch_datasource()
     finally:
