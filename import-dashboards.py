@@ -14,18 +14,17 @@ import string
 import subprocess
 import sys
 import time
-import datetime
 import http.client
-import fnmatch
 
 import requests
 
 GRAFANA_DB_DIR = sys.argv[1] if len(sys.argv) > 1 else "/var/lib/grafana"
 GRAFANA_IMG_DR = "/usr/share/grafana/public/img/"
+GRAFANA_CONFIG_FILE = "/etc/grafana/grafana.ini"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DASHBOARD_DIR = SCRIPT_DIR + "/dashboards/"
-NEW_VERSION_FILE = SCRIPT_DIR + "/VERSION"
-OLD_VERSION_FILE = GRAFANA_DB_DIR + "/PERCONA_DASHBOARDS_VERSION"
+NEW_VERSION_FILE = os.path.join(SCRIPT_DIR, "VERSION")
+OLD_VERSION_FILE = os.path.join(GRAFANA_DB_DIR, "plugins/ssm-app/VERSION")
 HOST = "http://127.0.0.1:3000"
 LOGO_FILE = "/usr/share/ssm-server/landing-page/img/ssm-logo.png"
 FAVICON_FILE = "/usr/share/ssm-server/landing-page/img/fav32.png"
@@ -54,28 +53,6 @@ PANEL_REPLACE_DICT = {
     'ssm-remote-instances-panel': 'ssm-monitored-instances-panel',
     'ssm-system-summary-app-panel': 'ssm-system-summary-panel'
 }
-YEAR = str(datetime.date.today())[:4]
-CONTENT = (
-    """<center>
-<p>MySQL and InnoDB are trademarks of Oracle Corp. Proudly running Percona Server. Copyright (c) 2006-"""
-    + YEAR
-    + """ Percona LLC.</p>
-<div style='text-align:center;'>
-<a href='https://percona.com/terms-use' style='display: inline;'>Terms of Use</a> | 
-<a href='https://percona.com/privacy-policy' style='display: inline;'>Privacy</a> | 
-<a href='https://percona.com/copyright-policy' style='display: inline;'>Copyright</a> | 
-<a href='https://percona.com/legal' style='display: inline;'>Legal</a>
-</div>
-</center>
-<hr>
-<link rel='stylesheet' type='text/css' href='//cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.0.3/cookieconsent.min.css' />
-<script src='//cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.0.3/cookieconsent.min.js'>
-</script>
-<script>
-function bbb(){setTimeout(function (){window.cookieconsent.initialise({'palette': {'popup': {'background': '#eb6c44','text': '#ffffff'},'button': {'background': '#f5d948'}},'theme': 'classic','content': {'message': 'This site uses cookies and other tracking technologies to assist with navigation, analyze your use of our products and services, assist with promotional and marketing efforts, allow you to give feedback, and provide content from third parties. If you do not want to accept cookies, adjust your browser settings to deny cookies or exit this site.','dismiss': 'Allow cookies', 'link': 'Cookie Policy', 'href': 'https://www.percona.com/cookie-policy'}})},3000)};window.addEventListener('load',bbb());
-</script>
-"""
-)
 
 
 def grafana_headers(api_key):
@@ -111,23 +88,17 @@ def get_api_key():
 
 
 def check_dashboards_version():
-    upgrade = False
-
     with open(NEW_VERSION_FILE, "r") as f:
         new_ver = f.read().strip()
 
     old_ver = "N/A"
     if os.path.exists(OLD_VERSION_FILE):
-        upgrade = True
         with open(OLD_VERSION_FILE, "r") as f:
             old_ver = f.read().strip()
-            print(" * Dashboards upgrade from version %s to %s." % (old_ver, new_ver))
 
     if old_ver == new_ver:
         print(" * The dashboards are up-to-date (%s)." % (old_ver,))
         sys.exit(0)
-
-    return upgrade
 
 
 def start_grafana():
@@ -151,12 +122,12 @@ def stop_grafana():
     time.sleep(5)
 
 
-def wait_for_grafana_start():
+def wait_for_grafana_start(api_key):
     sys.stdout.write(" * Waiting for Grafana to start")
     sys.stdout.flush()
     for _ in range(60):
         try:
-            requests.get("%s/api/datasources" % HOST, timeout=3)
+            requests.get("%s/api/datasources" % HOST, timeout=3, headers=grafana_headers(api_key))
         except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
             sys.stdout.write(".")
             sys.stdout.flush()
@@ -173,8 +144,8 @@ def add_api_key(name, db_key):
     cur = con.cursor()
 
     cur.execute(
-        "REPLACE INTO api_key (org_id, name, key, role, created, updated) "
-        "VALUES (1, ?, ?, 'Admin', datetime('now'), datetime('now'))",
+        "REPLACE INTO api_key (org_id, name, key, role, created, updated, service_account_id) "
+        "VALUES (1, ?, ?, 'Admin', datetime('now'), datetime('now'), 1)",
         (name, db_key),
     )
 
@@ -182,7 +153,7 @@ def add_api_key(name, db_key):
     con.close()
 
 
-def delete_api_key(db_key, upgrade):
+def delete_api_key(db_key):
     con = sqlite3.connect(GRAFANA_DB_DIR + "/grafana.db", isolation_level="EXCLUSIVE")
     cur = con.cursor()
 
@@ -199,7 +170,7 @@ def remove_pmm_dashboards():
     cur.execute(
         "DELETE FROM dashboard "
         "WHERE plugin_id = ?",
-        (map_app_name(SSM_APP_NAME),),
+        ('pmm-app',),
     )
 
     con.commit()
@@ -214,11 +185,8 @@ def fix_cloudwatch_datasource():
     con = sqlite3.connect(GRAFANA_DB_DIR + "/grafana.db", isolation_level="EXCLUSIVE")
     cur = con.cursor()
 
-    found = False
     cur.execute("SELECT id, json_data FROM data_source WHERE name = 'CloudWatch'")
     for row in cur.fetchall():
-        found = True
-
         old = None
         try:
             old = json.loads(row[1])
@@ -239,30 +207,29 @@ def fix_cloudwatch_datasource():
     con.close()
 
 
-def import_apps(api_key):
-    for app in [SSM_APP_NAME]:
-        print(" * Importing %r" % (app,))
-        data = json.dumps({"enabled": False})
-        r = requests.post(
-            "%s/api/plugins/%s/settings" % (HOST, app),
-            data=data,
-            headers=grafana_headers(api_key),
-        )
-        print(" * Plugin disable result: %r %r" % (r.status_code, r.content))
-        if r.status_code != http.client.OK:
-            print(" * Cannot dissable %s app" % app)
-            sys.exit(-1)
+def import_app(api_key):
+    print(" * Importing %r" % (SSM_APP_NAME,))
+    data = json.dumps({"enabled": False})
+    r = requests.post(
+        "%s/api/plugins/%s/settings" % (HOST, SSM_APP_NAME),
+        data=data,
+        headers=grafana_headers(api_key),
+    )
+    print(" * Plugin disable result: %r %r" % (r.status_code, r.content))
+    if r.status_code != http.client.OK:
+        print(" * Cannot dissable %s app" % SSM_APP_NAME)
+        sys.exit(-1)
 
-        data = json.dumps({"enabled": True})
-        r = requests.post(
-            "%s/api/plugins/%s/settings" % (HOST, app),
-            data=data,
-            headers=grafana_headers(api_key),
-        )
-        print(" * Plugin enable result: %r %r" % (r.status_code, r.content))
-        if r.status_code != http.client.OK:
-            print(" * Cannot enable %s app" % app)
-            sys.exit(-1)
+    data = json.dumps({"enabled": True})
+    r = requests.post(
+        "%s/api/plugins/%s/settings" % (HOST, SSM_APP_NAME),
+        data=data,
+        headers=grafana_headers(api_key)
+    )
+    print(" * Plugin enable result: %r %r" % (r.status_code, r.content))
+    if r.status_code != http.client.OK:
+        print(" * Cannot enable %s app" % SSM_APP_NAME)
+        sys.exit(-1)
 
 
 def add_datasources(api_key):
@@ -292,7 +259,7 @@ def add_datasources(api_key):
         print(" * Modifing Prometheus Data Source")
         r = requests.get(
             "%s/api/datasources/name/Prometheus" % (HOST,),
-            headers=grafana_headers(api_key),
+            headers=grafana_headers(api_key)
         )
         data = json.loads(r.content)
         data["jsonData"]["timeInterval"] = "1s"
@@ -300,7 +267,7 @@ def add_datasources(api_key):
         r = requests.put(
             "%s/api/datasources/%i" % (HOST, data["id"]),
             data=json.dumps(data),
-            headers=grafana_headers(api_key),
+            headers=grafana_headers(api_key)
         )
         print(r.status_code, r.content)
         if r.status_code != 200:
@@ -358,7 +325,7 @@ def add_datasources(api_key):
         print(" * Modifing QAN-API Data Source")
         r = requests.get(
             "%s/api/datasources/name/QAN-API" % (HOST,),
-            headers=grafana_headers(api_key),
+            headers=grafana_headers(api_key)
         )
         data = json.loads(r.content)
         if "secureJsonData" in data:
@@ -372,7 +339,7 @@ def add_datasources(api_key):
         r = requests.put(
             "%s/api/datasources/%i" % (HOST, data["id"]),
             data=json.dumps(data),
-            headers=grafana_headers(api_key),
+            headers=grafana_headers(api_key)
         )
         print(r.status_code, r.content)
         if r.status_code != 200:
@@ -380,23 +347,15 @@ def add_datasources(api_key):
             sys.exit(-1)
 
 
-def copy_apps():
-    for app in [SSM_APP_NAME]:
-        source_dir = "/usr/share/ssm-dashboards/" + app
-        dest_dir = "/var/lib/grafana/plugins/" + app
-        if os.path.isdir(source_dir):
-            print(" * Copying %r" % (app,))
-            if not os.path.isdir(os.path.dirname(dest_dir)):
-                subprocess.run(["mkdir", "-p", os.path.dirname(dest_dir)])
-            shutil.rmtree(dest_dir, True)
-            subprocess.run(["cp", "-r", source_dir, dest_dir])
-
-
-def map_app_name(app_name):
-    if app_name == SSM_APP_NAME:
-        return "pmm-app"
-
-    return app_name
+def copy_app():
+    source_dir = "/usr/share/ssm-dashboards/" + SSM_APP_NAME
+    dest_dir = "/var/lib/grafana/plugins/" + SSM_APP_NAME
+    if os.path.isdir(source_dir):
+        print(" * Copying %r" % (SSM_APP_NAME,))
+        if not os.path.isdir(os.path.dirname(dest_dir)):
+            subprocess.run(["mkdir", "-p", os.path.dirname(dest_dir)])
+        shutil.rmtree(dest_dir, True)
+        subprocess.run(["cp", "-r", source_dir, dest_dir])
 
 
 def get_folders(api_key):
@@ -475,52 +434,6 @@ def adjust_dashboards():
     con.close()
 
 
-def add_demo_footer():
-    # Add Copyright&Legal footer into dashboards
-    # It's used only for a ssm demo installation
-    print(" * adding Copyright&Legal footer into dashboards")
-    source_dir = "/usr/share/ssm-dashboards/%s/dist/dashboards/" % (SSM_APP_NAME)
-    dirs = os.listdir(source_dir)
-
-    for d_file in dirs:
-        if fnmatch.fnmatch(d_file, "ssm-*.json"):
-            continue
-
-        with open(source_dir + d_file, "r") as dashboard_file:
-            dashboard = json.loads(dashboard_file.read())
-
-        add_item = {
-            "collapsed": False,
-            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 99},
-            "id": 9998,
-            "panels": [],
-            "title": "Copyrights & Legal",
-            "type": "row",
-        }
-        dashboard["panels"].append(add_item)
-
-        add_item = {
-            "content": CONTENT,
-            "gridPos": {"h": 3, "w": 24, "x": 0, "y": 99},
-            "id": 9999,
-            "links": [],
-            "mode": "html",
-            "title": "",
-            "transparent": True,
-            "type": "text",
-        }
-        dashboard["panels"].append(add_item)
-
-        dashboard_json = json.dumps(
-            dashboard, sort_keys=True, indent=4, separators=(",", ": ")
-        )
-
-        with open(source_dir + d_file, "w") as dashboard_file:
-            dashboard_file.write(dashboard_json)
-            dashboard_file.write("\n")
-            print("Dashboard -> %s - %s" % (d_file, "Done"))
-
-
 def set_logos():
     if os.path.isfile(LOGO_FILE) and os.access(LOGO_FILE, os.R_OK):
         print(" * Copying %r to grafana directory %r" % (LOGO_FILE, GRAFANA_IMG_DR))
@@ -549,26 +462,25 @@ def set_logos():
 
 def main():
     print("Grafana database directory: %s" % (GRAFANA_DB_DIR,))
-    upgrade = check_dashboards_version()
+    check_dashboards_version()
 
     name, api_key, db_key = get_api_key()
 
     # modify database when Grafana is stopped to avoid a data race
     stop_grafana()
     try:
-        #  add_demo_footer()
-        copy_apps()
+        copy_app()
         add_api_key(name, db_key)
         fix_cloudwatch_datasource()
     finally:
         start_grafana()
 
-    wait_for_grafana_start()
+    wait_for_grafana_start(api_key)
 
     add_datasources(api_key)
     add_folders(api_key)
     get_folders(api_key)
-    import_apps(api_key)
+    import_app(api_key)
 
     stop_grafana()
 
@@ -577,7 +489,7 @@ def main():
 
     # restart Grafana to load app and set home dashboard below
     start_grafana()
-    wait_for_grafana_start()
+    wait_for_grafana_start(api_key)
     time.sleep(10)
 
     set_logos()
@@ -585,7 +497,7 @@ def main():
     # modify database when Grafana is stopped to avoid a data race
     stop_grafana()
     try:
-        delete_api_key(db_key, upgrade)
+        delete_api_key(db_key)
     finally:
         start_grafana()
 
