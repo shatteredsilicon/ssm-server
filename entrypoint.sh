@@ -64,37 +64,6 @@ pushd /etc/nginx >/dev/null
     fi
 popd >/dev/null
 
-migrate_from_pmm() {
-    local mysql_pid=
-    /usr/sbin/mysqld --user=mysql --basedir=/usr --datadir=/var/lib/mysql --plugin-dir=/usr/lib64/mysql/plugin --pid-file=/var/lib/mysql/mysqld.pid --socket=/var/lib/mysql/mysql.sock & mysql_pid=$!
-
-    # Wait for mysql to start
-    sleep 30
-
-    # Migrate mysql to mariadb
-    mariadb-upgrade
-
-    # Create new SSM databases
-    mysql --execute="CREATE DATABASE IF NOT EXISTS \`ssm\`; CREATE DATABASE IF NOT EXISTS \`ssm-managed\`"
-
-    # Migrate database 'pmm'
-    mysql pmm -sNe 'show tables' | while read table; \
-        do mysql --execute="RENAME TABLE \`pmm\`.\`${table}\` TO \`ssm\`.\`${table}\`"; done
-
-    # Migrate database 'pmm-managed'
-    mysql pmm-managed -sNe 'show tables' | while read table; \
-        do mysql --execute="RENAME TABLE \`pmm-managed\`.\`${table}\` TO \`ssm-managed\`.\`${table}\`"; done
-
-    # Migrate database data
-    mysql --database="ssm-managed" --execute="UPDATE nodes SET \`type\` = 'ssm-server', name = 'SSM Server' WHERE \`type\` = 'pmm-server';"
-
-    # drop PMM databases
-    mysql --execute="DROP DATABASE IF EXISTS \`pmm\`;"
-    mysql --execute="DROP DATABASE IF EXISTS \`pmm-managed\`;"
-
-    kill $mysql_pid
-}
-
 migrate_from_ssm() {
     local mysql_pid=
     /usr/sbin/mysqld --user=mysql --basedir=/usr --datadir=/var/lib/mysql --plugin-dir=/usr/lib64/mysql/plugin --pid-file=/var/lib/mysql/mysqld.pid --socket=/var/lib/mysql/mysql.sock & mysql_pid=$!
@@ -120,14 +89,8 @@ chown -R ssm:ssm /opt/prometheus/data
 chown -R grafana:grafana /var/lib/grafana
 
 # Upgrade
-if [ -f /var/lib/grafana/PERCONA_DASHBOARDS_VERSION ] && [ -f /usr/share/ssm-dashboards/VERSION ] && [[ "$(cat /usr/share/ssm-dashboards/VERSION)" > "$(cat /var/lib/grafana/PERCONA_DASHBOARDS_VERSION)" ]]; then
-    # Check if it's a upgrade from PMM
-    if [[ -d /var/lib/grafana/plugins/pmm-app ]]; then
-        migrate_from_pmm
-        mv /var/lib/grafana/plugins/pmm-app /tmp/pmm-app
-    else
-        migrate_from_ssm
-    fi
+if [ -d /var/lib/grafana ] && [ "$(ls -A /var/lib/grafana)" ] && [ -f /usr/share/ssm-dashboards/VERSION ] && ([ ! -f /var/lib/grafana/plugins/ssm-app/VERSION ] || [[ "$(cat /usr/share/ssm-dashboards/VERSION)" > "$(cat /var/lib/grafana/plugins/ssm-app/VERSION)" ]]); then
+    migrate_from_ssm
 
     # Consul raft protocol version change from 2 to 3
     # requires a new raft/peers.json file
