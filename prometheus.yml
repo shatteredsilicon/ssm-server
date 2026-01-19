@@ -327,6 +327,9 @@ scrape_configs:
       replacement: ${1}_count
       action: replace
 
+rule_files:
+  - /etc/prometheus/rules/ssm_advised_table_definition_cache.yml
+
 storage:
   tsdb:
     out_of_order_time_window: 10y

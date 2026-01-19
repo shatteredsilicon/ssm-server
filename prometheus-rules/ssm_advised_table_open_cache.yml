@@ -1,0 +1,57 @@
+groups:
+  - name: ssm
+    interval: 1m
+    rules:
+      - record: ssm_advised_table_open_cache
+        expr: |2
+          clamp( 
+            ( 
+              2^( 
+                floor( 
+                  log2(mysql_global_variables_table_open_cache{}) 
+                ) + 1 
+              ) 
+              and on() ( 
+                mysql_global_variables_table_open_cache{} 
+                / 
+                2^( 
+                  floor( 
+                    log2(mysql_global_variables_table_open_cache{}) 
+                  ) + 1 
+                ) 
+                < 0.9 
+              ) 
+              or on() 2^( 
+                floor( 
+                  log2(mysql_global_variables_table_open_cache{}) 
+                ) + 2 
+              ) 
+            ) 
+            and on() ( 
+              mysql_global_status_open_tables{} 
+              / 
+              mysql_global_variables_table_open_cache{} 
+              > 0.9 
+            ) 
+            or on() ( 
+              ( 
+                2^( 
+                  ceil( 
+                    log2(mysql_global_variables_table_open_cache{}) 
+                  ) - 1 
+                ) 
+                and 
+                ( 
+                  mysql_global_status_open_tables{} 
+                  / 
+                  mysql_global_variables_table_open_cache{} 
+                  < 0.4 
+                ) 
+              ) 
+              or on() ( 
+                mysql_global_variables_table_open_cache{} 
+              ) 
+            ), 
+            2000, 
+            262144 
+          )

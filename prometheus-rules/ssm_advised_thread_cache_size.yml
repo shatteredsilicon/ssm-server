@@ -1,0 +1,47 @@
+groups:
+  - name: ssm
+    interval: 1m
+    rules:
+      - record: ssm_advised_thread_cache_size
+        expr: |2
+          mysql_global_variables_thread_cache_size{} 
+          and on() ( 
+            clamp_min( 
+              max(max_over_time(mysql_global_status_threads_connected{}[5m])) by (instance)
+              - 
+              min(min_over_time(mysql_global_status_threads_connected{}[5m])) by (instance), 
+              scalar( 
+                vector(256) 
+                and on() ( 
+                  mysql_global_variables_max_connections{} > 256 
+                ) 
+                or on() mysql_global_variables_max_connections{} 
+              ) 
+            ) >= scalar(mysql_global_variables_thread_cache_size{} * 0.8) 
+          ) 
+          and on() ( 
+            clamp_min( 
+              max(max_over_time(mysql_global_status_threads_connected{}[5m])) by (instance) 
+              - 
+              min(min_over_time(mysql_global_status_threads_connected{}[5m])) by (instance), 
+              scalar( 
+                vector(256) 
+                and on() ( 
+                  mysql_global_variables_max_connections{} > 256 
+                ) 
+                or on() mysql_global_variables_max_connections{} 
+              ) 
+            ) <= scalar(mysql_global_variables_thread_cache_size{} * 1.1) 
+          ) 
+          or on() clamp_min( 
+            max(max_over_time(mysql_global_status_threads_connected{}[5m])) by (instance) 
+            - 
+            min(min_over_time(mysql_global_status_threads_connected{}[5m])) by (instance), 
+            scalar( 
+              vector(256) 
+              and on() ( 
+                mysql_global_variables_max_connections{} > 256 
+              ) 
+              or on() mysql_global_variables_max_connections{} 
+            ) 
+          )

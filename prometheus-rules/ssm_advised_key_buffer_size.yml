@@ -1,0 +1,41 @@
+groups:
+  - name: ssm
+    interval: 1m
+    rules:
+      - record: ssm_advised_key_buffer_size
+        expr: |2
+          clamp( 
+            mysql_global_variables_key_buffer_size{} 
+            and on() ( 
+              ( 
+                ceil( 
+                  sum( 
+                    mysql_info_schema_table_size{component="index_length"} 
+                    and on (instance, schema, table) 
+                    mysql_info_schema_table_version{engine="MyISAM"} 
+                  ) / ( 1024 * 1024 ) 
+                ) * ( 1024 * 1024 ) 
+              ) == mysql_global_variables_key_buffer_size{} 
+            ) 
+            or on() ( 
+              ceil( 
+                sum( 
+                  mysql_info_schema_table_size{component="index_length"} 
+                  and on (instance, schema, table) 
+                  mysql_info_schema_table_version{engine="MyISAM"} 
+                ) / ( 1024 * 1024 ) 
+              ) * ( 1024 * 1024 ) 
+            ),
+            1024 * 1024, 
+            scalar( 
+              floor( 
+                ( 
+                  ( 
+                    node_memory_MemTotal{} 
+                    or 
+                    node_memory_MemTotal_bytes{} 
+                  ) * 0.75 
+                ) / ( 1024 * 1024 ) 
+              ) * ( 1024 * 1024 ) 
+            ) 
+          ) 

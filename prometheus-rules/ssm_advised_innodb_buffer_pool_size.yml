@@ -1,0 +1,105 @@
+groups:
+  - name: ssm
+    interval: 1m
+    rules:
+      - record: ssm_advised_innodb_buffer_pool_size
+        expr: |2
+          ( 
+            ( 
+              ceil( 
+                2^( 
+                  ceil( 
+                    log2( 
+                      mysql_global_variables_innodb_buffer_pool_size{} 
+                    ) 
+                  ) - 1 
+                ) / ( 
+                  ( 
+                    mysql_global_variables_innodb_buffer_pool_chunk_size{} 
+                    * 
+                    mysql_global_variables_innodb_buffer_pool_instances{} 
+                  ) 
+                  or 
+                  mysql_global_variables_innodb_buffer_pool_chunk_size{} 
+                ) 
+              ) * ( 
+                ( 
+                  mysql_global_variables_innodb_buffer_pool_chunk_size{} 
+                  * 
+                  mysql_global_variables_innodb_buffer_pool_instances{} 
+                ) 
+                or 
+                mysql_global_variables_innodb_buffer_pool_chunk_size{} 
+              ) 
+            ) and on() ( 
+              ( 
+                sum( 
+                  mysql_mysql_innodb_table_size{component="index_length"} 
+                ) 
+                or 
+                sum( 
+                  mysql_info_schema_table_size{component="index_length"} 
+                  and on (instance, schema, table) 
+                  mysql_info_schema_table_version{engine="InnoDB"} 
+                ) 
+                or vector(0) 
+              ) < ( 
+                mysql_global_variables_innodb_buffer_pool_size{} * 0.4 
+              ) 
+            ) 
+          ) 
+          or on() ( 
+            ( 
+              ( 
+                ceil( 
+                  2^( 
+                    floor( 
+                      log2( 
+                        sum( 
+                          mysql_mysql_innodb_table_size{component="index_length"} 
+                        ) 
+                        or 
+                        sum( 
+                          mysql_info_schema_table_size{component="index_length"} 
+                          and on (instance, schema, table) 
+                          mysql_info_schema_table_version{engine="InnoDB"} 
+                        ) 
+                      ) 
+                    ) + 1 
+                  ) / ( 
+                    ( 
+                      mysql_global_variables_innodb_buffer_pool_chunk_size{} 
+                      * 
+                      mysql_global_variables_innodb_buffer_pool_instances{} 
+                    ) 
+                    or 
+                    mysql_global_variables_innodb_buffer_pool_chunk_size{} 
+                  ) 
+                ) * ( 
+                  ( 
+                    mysql_global_variables_innodb_buffer_pool_chunk_size{} 
+                    * 
+                    mysql_global_variables_innodb_buffer_pool_instances{} 
+                  ) 
+                  or 
+                  mysql_global_variables_innodb_buffer_pool_chunk_size{} 
+                ) 
+              ) and on() ( 
+                ( 
+                  sum( 
+                    mysql_mysql_innodb_table_size{component="index_length"} 
+                  ) 
+                  or 
+                  sum( 
+                    mysql_info_schema_table_size{component="index_length"} 
+                    and on (instance, schema, table) 
+                    mysql_info_schema_table_version{engine="InnoDB"} 
+                  ) 
+                ) > ( 
+                  mysql_global_variables_innodb_buffer_pool_size{} * 0.9 
+                ) 
+              ) 
+            ) or on() ( 
+              mysql_global_variables_innodb_buffer_pool_size{} 
+            ) 
+          ) 
