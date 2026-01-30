@@ -1,0 +1,170 @@
+groups:
+  - name: ssm
+    interval: 1m
+    rules:
+      - record: ssm_advised_innodb_redo_log_capacity
+        expr: |2
+          clamp( 
+            2^( 
+              ceil( 
+                log2( 
+                  mysql_global_status_innodb_redo_log_capacity_resized{} 
+                  or 
+                  mysql_global_variables_innodb_redo_log_capacity{} 
+                  or 
+                  mysql_global_variables_innodb_log_file_size{} * mysql_global_variables_innodb_log_files_in_group{} 
+                  or 
+                  mysql_global_variables_innodb_log_file_size{} 
+                ) 
+              ) - 1 
+            ) 
+            and on() ( 
+              max( 
+                max_over_time(mysql_global_status_innodb_checkpoint_age{}[1w]) 
+                or 
+                max_over_time(mysql_info_schema_innodb_metrics_recovery_log_lsn_checkpoint_age_total{}[1w]) 
+                or 
+                max_over_time(mysql_info_schema_innodb_metrics_log_log_lsn_checkpoint_age{}[1w]) 
+              ) < scalar( 
+                mysql_global_status_innodb_redo_log_capacity_resized{} 
+                or 
+                mysql_global_variables_innodb_redo_log_capacity{} 
+                or 
+                mysql_global_variables_innodb_log_file_size{} * mysql_global_variables_innodb_log_files_in_group{} 
+                or 
+                mysql_global_variables_innodb_log_file_size{} 
+              ) * 0.4 
+            ) 
+            and on() ( 
+              max_over_time( 
+                ( 
+                  mysql_global_status_innodb_redo_log_capacity_resized{} 
+                  or 
+                  mysql_global_variables_innodb_redo_log_capacity{} 
+                  or 
+                  mysql_global_variables_innodb_log_file_size{} * mysql_global_variables_innodb_log_files_in_group{} 
+                  or 
+                  mysql_global_variables_innodb_log_file_size{} 
+                )[1w:2m] 
+              ) == min_over_time( 
+                ( 
+                  mysql_global_status_innodb_redo_log_capacity_resized{} 
+                  or 
+                  mysql_global_variables_innodb_redo_log_capacity{} 
+                  or 
+                  mysql_global_variables_innodb_log_file_size{} * mysql_global_variables_innodb_log_files_in_group{} 
+                  or 
+                  mysql_global_variables_innodb_log_file_size{} 
+                )[1w:2m]
+              ) 
+            ) 
+            or on() ( 
+              ( 
+                2^( 
+                  floor( 
+                    log2( 
+                      mysql_global_status_innodb_redo_log_capacity_resized{} 
+                      or 
+                      mysql_global_variables_innodb_redo_log_capacity{} 
+                      or 
+                      mysql_global_variables_innodb_log_file_size{} * mysql_global_variables_innodb_log_files_in_group{} 
+                      or 
+                      mysql_global_variables_innodb_log_file_size{} 
+                    ) 
+                  ) + 1 
+                ) 
+                and on() ( 
+                  ( 
+                    mysql_global_status_innodb_redo_log_capacity_resized{} 
+                    or 
+                    mysql_global_variables_innodb_redo_log_capacity{} 
+                    or 
+                    mysql_global_variables_innodb_log_file_size{} * mysql_global_variables_innodb_log_files_in_group{} 
+                    or 
+                    mysql_global_variables_innodb_log_file_size{} 
+                  ) 
+                  / 
+                  2^( 
+                    floor( 
+                      log2( 
+                        mysql_global_status_innodb_redo_log_capacity_resized{} 
+                        or 
+                        mysql_global_variables_innodb_redo_log_capacity{} 
+                        or 
+                        mysql_global_variables_innodb_log_file_size{} * mysql_global_variables_innodb_log_files_in_group{} 
+                        or 
+                        mysql_global_variables_innodb_log_file_size{} 
+                      ) 
+                    ) + 1 
+                  ) 
+                  < 0.9 
+                ) 
+                or on() 2^( 
+                  floor( 
+                    log2( 
+                      mysql_global_status_innodb_redo_log_capacity_resized{} 
+                      or 
+                      mysql_global_variables_innodb_redo_log_capacity{} 
+                      or 
+                      mysql_global_variables_innodb_log_file_size{} * mysql_global_variables_innodb_log_files_in_group{} 
+                      or 
+                      mysql_global_variables_innodb_log_file_size{} 
+                    ) 
+                  ) + 2 
+                ) 
+              ) 
+              and on() ( 
+                max( 
+                  max_over_time(mysql_global_status_innodb_checkpoint_age{}[1w]) 
+                  or 
+                  max_over_time(mysql_info_schema_innodb_metrics_recovery_log_lsn_checkpoint_age_total{}[1w]) 
+                  or 
+                  max_over_time(mysql_info_schema_innodb_metrics_log_log_lsn_checkpoint_age{}[1w]) 
+                ) > scalar( 
+                  mysql_global_status_innodb_redo_log_capacity_resized{} 
+                  or 
+                  mysql_global_variables_innodb_redo_log_capacity{} 
+                  or 
+                  mysql_global_variables_innodb_log_file_size{} * mysql_global_variables_innodb_log_files_in_group{} 
+                  or 
+                  mysql_global_variables_innodb_log_file_size{} 
+                ) * 0.4 
+              ) 
+              and on() ( 
+                max_over_time( 
+                  ( 
+                    mysql_global_status_innodb_redo_log_capacity_resized{} 
+                    or 
+                    mysql_global_variables_innodb_redo_log_capacity{} 
+                    or 
+                    mysql_global_variables_innodb_log_file_size{} * mysql_global_variables_innodb_log_files_in_group{} 
+                    or 
+                    mysql_global_variables_innodb_log_file_size{} 
+                  )[1w:2m] 
+                ) == min_over_time( 
+                  ( 
+                    mysql_global_status_innodb_redo_log_capacity_resized{} 
+                    or 
+                    mysql_global_variables_innodb_redo_log_capacity{} 
+                    or 
+                    mysql_global_variables_innodb_log_file_size{} * mysql_global_variables_innodb_log_files_in_group{} 
+                    or 
+                    mysql_global_variables_innodb_log_file_size{} 
+                  )[1w:2m]
+                ) 
+              ) 
+              or on() ( 
+                ( 
+                  mysql_global_status_innodb_redo_log_capacity_resized{} 
+                  or 
+                  mysql_global_variables_innodb_redo_log_capacity{} 
+                  or 
+                  mysql_global_variables_innodb_log_file_size{} * mysql_global_variables_innodb_log_files_in_group{} 
+                  or 
+                  mysql_global_variables_innodb_log_file_size{} 
+                ) 
+              ) 
+            ), 
+            100663296, 
+            137438953472 
+          )

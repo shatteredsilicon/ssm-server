@@ -1,0 +1,73 @@
+groups:
+  - name: ssm
+    interval: 1m
+    rules:
+      - record: ssm_advised_innodb_io_capacity
+        expr: |2
+          ( 
+            mysql_global_variables_innodb_io_capacity{} 
+            and on() ( 
+              scalar(mysql_global_variables_innodb_io_capacity{}) == ( 
+                floor( 
+                  avg_over_time( 
+                    ( 
+                      ( 
+                        ( 
+                          max(rate(node_disk_reads_completed{}[10m])) by (instance, device)
+                          or 
+                          max(rate(node_disk_reads_completed_total{}[10m])) by (instance, device)
+                          or 
+                          max(max_over_time(rdsosmetrics_diskIO_readIOsPS{}[10m])) by (instance, device)
+                        ) + ( 
+                          max(rate(node_disk_writes_completed{}[10m])) by (instance, device)
+                          or 
+                          max(rate(node_disk_writes_completed_total{}[10m])) by (instance, device)
+                          or 
+                          max(max_over_time(rdsosmetrics_diskIO_writeIOsPS{}[10m])) by (instance, device)
+                        ) 
+                      ) / ( 
+                        max(rate(node_disk_io_time_ms{}[10m])) by (instance, device) / 1000 
+                        or 
+                        max(rate(node_disk_io_time_ms_total{}[10m])) by (instance, device) / 1000 
+                        or 
+                        max(rate(node_disk_io_time_seconds_total{}[10m])) by (instance, device) 
+                        or 
+                        max(max_over_time(rdsosmetrics_diskIO_util{}[10m])) by (instance, device) / 100 
+                      ) < +Inf 
+                    )[1w:10m] 
+                  ) * 0.5 / 500 
+                ) * 500 
+              ) 
+            ) 
+          ) 
+          or on() ( 
+            floor( 
+              avg_over_time( 
+                ( 
+                  ( 
+                    ( 
+                      max(rate(node_disk_reads_completed{}[10m])) by (instance, device)
+                      or 
+                      max(rate(node_disk_reads_completed_total{}[10m])) by (instance, device)
+                      or 
+                      max(max_over_time(rdsosmetrics_diskIO_readIOsPS{}[10m])) by (instance, device)
+                    ) + ( 
+                      max(rate(node_disk_writes_completed{}[10m])) by (instance, device)
+                      or 
+                      max(rate(node_disk_writes_completed_total{}[10m])) by (instance, device)
+                      or 
+                      max(max_over_time(rdsosmetrics_diskIO_writeIOsPS{}[10m])) by (instance, device)
+                    ) 
+                  ) / ( 
+                    max(rate(node_disk_io_time_ms{}[10m])) by (instance, device) / 1000 
+                    or 
+                    max(rate(node_disk_io_time_ms_total{}[10m])) by (instance, device) / 1000 
+                    or 
+                    max(rate(node_disk_io_time_seconds_total{}[10m])) by (instance, device) 
+                    or 
+                    max(max_over_time(rdsosmetrics_diskIO_util{}[10m])) by (instance, device) / 100 
+                  ) < +Inf 
+                )[1w:10m] 
+              ) * 0.5 / 500 
+            ) * 500 
+          )

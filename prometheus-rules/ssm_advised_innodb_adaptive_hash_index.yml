@@ -1,0 +1,31 @@
+groups:
+  - name: ssm
+    interval: 1m
+    rules:
+      - record: ssm_advised_innodb_adaptive_hash_index
+        expr: |2
+          vector(0) 
+          and on() ( 
+            avg_over_time( 
+              ( 
+                rate(mysql_info_schema_innodb_metrics_adaptive_hash_index_adaptive_hash_searches_total{}[10m]) 
+                / 
+                ( 
+                  rate(mysql_info_schema_innodb_metrics_adaptive_hash_index_adaptive_hash_pages_added_total{}[10m]) 
+                  + 
+                  rate(mysql_info_schema_innodb_metrics_adaptive_hash_index_adaptive_hash_pages_removed_total{}[10m]) 
+                  + 
+                  rate(mysql_info_schema_innodb_metrics_adaptive_hash_index_adaptive_hash_rows_added_total{}[10m]) 
+                  + 
+                  rate(mysql_info_schema_innodb_metrics_adaptive_hash_index_adaptive_hash_rows_removed_total{}[10m]) 
+                  + 
+                  rate(mysql_info_schema_innodb_metrics_adaptive_hash_index_adaptive_hash_rows_updated_total{}[10m]) 
+                  + 
+                  rate(mysql_info_schema_innodb_metrics_adaptive_hash_index_adaptive_hash_searches_total{}[10m]) 
+                ) >= 0 
+              )[1w:10m] 
+            ) < 0.5 
+          ) 
+          or on() ( 
+            mysql_global_variables_innodb_adaptive_hash_index{} 
+          ) 

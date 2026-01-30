@@ -1,0 +1,77 @@
+groups:
+  - name: ssm
+    interval: 1m
+    rules:
+      - record: ssm_advised_innodb_write_io_threads
+        expr: |2
+          clamp( 
+            ( 
+              mysql_global_variables_innodb_write_io_threads{} 
+              and 
+              on() ( 
+                max_over_time( 
+                  mysql_engine_innodb_pending_writes{}[1w] 
+                ) < ( 
+                  mysql_global_variables_innodb_write_io_threads{} / 2 
+                ) 
+                or 
+                ( 
+                  max_over_time( 
+                    mysql_engine_innodb_pending_writes{}[1w] 
+                  ) >= ( 
+                    mysql_global_variables_innodb_write_io_threads{} / 2 
+                  ) 
+                  and 
+                  ( 
+                    max(rate(node_disk_io_time_ms{device=~"$device"}[5m])) / 1000 
+                    or 
+                    max(rate(node_disk_io_time_ms_total{device=~"$device"}[5m])) / 1000 
+                    or 
+                    max(rate(node_disk_io_time_seconds_total{device=~"$device"}[5m])) 
+                    or 
+                    max(max_over_time(rdsosmetrics_diskIO_util{device=~"$device"}[5m])) / 100 
+                  ) < 0.75 
+                ) 
+              ) 
+            ) 
+            or 
+            on() ( 
+              mysql_global_variables_innodb_write_io_threads{} 
+              and 
+              on() ( 
+                max_over_time( 
+                  mysql_global_variables_innodb_write_io_threads{}[1w] 
+                ) != min_over_time( 
+                  mysql_global_variables_innodb_write_io_threads{}[1w] 
+                ) 
+              ) 
+            ) 
+            or 
+            on() ( 
+              2^( 
+                floor( 
+                  log2(mysql_global_variables_innodb_write_io_threads{}) 
+                )+1 
+              ) 
+            ), 
+            1, 
+            scalar( 
+              ( 
+                count( 
+                  (node_cpu{mode=~"user"} or node_cpu_seconds_total{mode=~"user"}) 
+                ) 
+                or 
+                ( 
+                  1 - absent( 
+                    (node_cpu{mode=~"user"} or node_cpu_seconds_total{mode=~"user"}) 
+                  ) 
+                ) > 0 
+                or 
+                sum(rdsosmetrics_General_numVCPUs{}) 
+                or 
+                count(hrProcessorLoad{}) 
+              ) 
+              or 
+              vector(32) 
+            ) 
+          ) 

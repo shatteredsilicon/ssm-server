@@ -1,0 +1,102 @@
+groups:
+  - name: ssm
+    interval: 1m
+    rules:
+      - record: ssm_advised_innodb_log_buffer_size
+        expr: |2
+          clamp( 
+            mysql_global_variables_innodb_log_buffer_size{} 
+            and on() ( 
+              max_over_time( 
+                ( 
+                  ( 
+                    mysql_info_schema_innodb_metrics_recovery_log_lsn_current{} 
+                    or 
+                    mysql_info_schema_innodb_metrics_log_log_lsn_current{} 
+                  ) - ( 
+                    mysql_info_schema_innodb_metrics_recovery_log_lsn_last_flush{} 
+                    or 
+                    mysql_info_schema_innodb_metrics_log_log_lsn_last_flush{} 
+                  ) 
+                )[1w:2m] 
+              ) < mysql_global_variables_innodb_log_buffer_size{} * 0.75 
+            ) 
+            or on() ( 
+              2^( 
+                floor( 
+                  log2( 
+                    max_over_time( 
+                      ( 
+                        ( 
+                          mysql_info_schema_innodb_metrics_recovery_log_lsn_current{} 
+                          or 
+                          mysql_info_schema_innodb_metrics_log_log_lsn_current{} 
+                        ) - ( 
+                          mysql_info_schema_innodb_metrics_recovery_log_lsn_last_flush{} 
+                          or 
+                          mysql_info_schema_innodb_metrics_log_log_lsn_last_flush{} 
+                        ) 
+                      )[1w:2m] 
+                    ) 
+                  ) 
+                ) + 1 
+              ) 
+              and on() ( 
+                max_over_time( 
+                  ( 
+                    ( 
+                      mysql_info_schema_innodb_metrics_recovery_log_lsn_current{} 
+                      or 
+                      mysql_info_schema_innodb_metrics_log_log_lsn_current{} 
+                    ) - ( 
+                      mysql_info_schema_innodb_metrics_recovery_log_lsn_last_flush{} 
+                      or 
+                      mysql_info_schema_innodb_metrics_log_log_lsn_last_flush{} 
+                    ) 
+                  )[1w:2m] 
+                ) 
+                / 
+                2^( 
+                  floor( 
+                    log2( 
+                      max_over_time( 
+                        ( 
+                          ( 
+                            mysql_info_schema_innodb_metrics_recovery_log_lsn_current{} 
+                            or 
+                            mysql_info_schema_innodb_metrics_log_log_lsn_current{} 
+                          ) - ( 
+                            mysql_info_schema_innodb_metrics_recovery_log_lsn_last_flush{} 
+                            or 
+                            mysql_info_schema_innodb_metrics_log_log_lsn_last_flush{} 
+                          ) 
+                        )[1w:2m] 
+                      ) 
+                    ) 
+                  ) + 1 
+                ) 
+                < 0.9 
+              ) 
+              or on() 2^( 
+                floor( 
+                  log2( 
+                    max_over_time( 
+                      ( 
+                        ( 
+                          mysql_info_schema_innodb_metrics_recovery_log_lsn_current{} 
+                          or 
+                          mysql_info_schema_innodb_metrics_log_log_lsn_current{} 
+                        ) - ( 
+                          mysql_info_schema_innodb_metrics_recovery_log_lsn_last_flush{} 
+                          or 
+                          mysql_info_schema_innodb_metrics_log_log_lsn_last_flush{} 
+                        ) 
+                      )[1w:2m] 
+                    ) 
+                  ) 
+                ) + 2 
+              ) 
+            ), 
+            16777216,
+            134217728
+          ) 

@@ -1,0 +1,37 @@
+groups:
+  - name: ssm
+    interval: 1m
+    rules:
+      - record: ssm_advised_table_definition_cache
+        expr: |2
+          clamp(
+            2^(
+              floor(
+                log2(mysql_info_schema_table_count{})
+              ) + 1
+            )
+            and on() (
+              mysql_info_schema_table_count{}
+              /
+              2^(
+                floor(
+                  log2(mysql_info_schema_table_count{})
+                ) + 1
+              )
+              < 0.9
+            )
+            or on() (
+              2^(
+                floor(
+                  log2(mysql_info_schema_table_count{})
+                ) + 2
+              )
+            ),
+            400,
+            131072
+          )
+          and on() (
+            mysql_global_variables_table_definition_cache{} >= 0
+            and
+            mysql_info_schema_table_count{} >= 0
+          )

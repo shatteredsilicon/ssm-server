@@ -263,6 +263,7 @@ def add_datasources(api_key):
         )
         data = json.loads(r.content)
         data["jsonData"]["timeInterval"] = "1s"
+        data["jsonData"]["prometheusType"] = "Prometheus"
         data["readOnly"] = False
         r = requests.put(
             "%s/api/datasources/%i" % (HOST, data["id"]),

@@ -1,0 +1,43 @@
+groups:
+  - name: ssm
+    interval: 1m
+    rules:
+      - record: ssm_advised_binlog_cache_size
+        expr: |2
+          clamp_min( 
+            ( 
+              ( 
+                mysql_global_variables_binlog_cache_size{} 
+                or 
+                mysql_global_variables_binlog_cache_size_count{} 
+              ) * 2 
+            ) 
+            and on() ( 
+              avg_over_time( 
+                ( 
+                  ( 
+                    rate(mysql_global_status_binlog_cache_use{}[10m]) 
+                    or 
+                    rate(mysql_global_status_binlog_cache_use_total{}[10m]) 
+                  ) / ( 
+                    ( 
+                      rate(mysql_global_status_binlog_cache_use{}[10m]) 
+                      or 
+                      rate(mysql_global_status_binlog_cache_use_total{}[10m]) 
+                    ) + ( 
+                      rate(mysql_global_status_binlog_cache_disk_use{}[10m]) 
+                      or 
+                      rate(mysql_global_status_binlog_cache_disk_use_total{}[10m]) 
+                    ) 
+                  ) 
+                  or vector(1) 
+                )[1w:10m] 
+              ) < 0.95 
+            ) 
+            or on() ( 
+              mysql_global_variables_binlog_cache_size{} 
+              or 
+              mysql_global_variables_binlog_cache_size_count{} 
+            ), 
+            32768 
+          ) 

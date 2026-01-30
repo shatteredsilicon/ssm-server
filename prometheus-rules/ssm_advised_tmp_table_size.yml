@@ -1,0 +1,35 @@
+groups:
+  - name: ssm
+    interval: 1m
+    rules:
+      - record: ssm_advised_tmp_table_size
+        expr: |2
+          2^( 
+            floor( 
+              log2( 
+                max_over_time( 
+                  ( 
+                    mysql_global_variables_tmp_table_size{} 
+                    / 
+                    ( 
+                      1 - ( 
+                        mysql_global_status_created_tmp_disk_tables{} 
+                        or 
+                        mysql_global_status_created_tmp_disk_tables_total{} 
+                      ) / ( 
+                        mysql_global_status_created_tmp_tables{} 
+                        or 
+                        mysql_global_status_created_tmp_tables_total{} 
+                      ) 
+                    ) 
+                  )[1w:2m] 
+                ) 
+              ) 
+            ) 
+          ) 
+          or 
+          2^( 
+            floor( 
+              log2(mysql_global_variables_tmp_table_size{}) 
+            ) + 1 
+          )
