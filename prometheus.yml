@@ -328,7 +328,22 @@ scrape_configs:
       action: replace
 
 rule_files:
+  - /etc/prometheus/rules/ssm_advised_aria_pagecache_buffer_size.yml
+  - /etc/prometheus/rules/ssm_advised_binlog_cache_size.yml
+  - /etc/prometheus/rules/ssm_advised_binlog_stmt_cache_size.yml
+  - /etc/prometheus/rules/ssm_advised_innodb_adaptive_hash_index.yml
+  - /etc/prometheus/rules/ssm_advised_innodb_buffer_pool_size.yml
+  - /etc/prometheus/rules/ssm_advised_innodb_io_capacity.yml
+  - /etc/prometheus/rules/ssm_advised_innodb_io_capacity_max.yml
+  - /etc/prometheus/rules/ssm_advised_innodb_log_buffer_size.yml
+  - /etc/prometheus/rules/ssm_advised_innodb_read_io_threads.yml
+  - /etc/prometheus/rules/ssm_advised_innodb_redo_log_capacity.yml
+  - /etc/prometheus/rules/ssm_advised_innodb_write_io_threads.yml
+  - /etc/prometheus/rules/ssm_advised_key_buffer_size.yml
   - /etc/prometheus/rules/ssm_advised_table_definition_cache.yml
+  - /etc/prometheus/rules/ssm_advised_table_open_cache.yml
+  - /etc/prometheus/rules/ssm_advised_thread_cache_size.yml
+  - /etc/prometheus/rules/ssm_advised_tmp_table_size.yml
 
 storage:
   tsdb:
