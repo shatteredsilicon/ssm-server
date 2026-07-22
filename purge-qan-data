@@ -43,5 +43,6 @@ do_table "query_examples" "period < NOW() - INTERVAL $INTERVAL DAY"
 do_table "query_global_metrics" "start_ts < NOW() - INTERVAL $INTERVAL DAY"
 do_table "query_class_metrics" "start_ts < NOW() - INTERVAL $INTERVAL DAY"
 do_table "query_classes" "last_seen < NOW() - INTERVAL $INTERVAL DAY"
+do_table "query_explain_indexes" "example_period < NOW() - INTERVAL $INTERVAL DAY"
 
 ts "Done purging data."
