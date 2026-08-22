@@ -163,20 +163,6 @@ def delete_api_key(db_key):
     con.close()
 
 
-def remove_pmm_dashboards():
-    con = sqlite3.connect(GRAFANA_DB_DIR + "/grafana.db", isolation_level="EXCLUSIVE")
-    cur = con.cursor()
-
-    cur.execute(
-        "DELETE FROM dashboard "
-        "WHERE plugin_id = ?",
-        ('pmm-app',),
-    )
-
-    con.commit()
-    con.close()
-
-
 def fix_cloudwatch_datasource():
     """
     Replaces incorrect CloudWatch datasource stored as JSON string with correct JSON object.
@@ -406,9 +392,9 @@ def adjust_dashboards():
                         "UPDATE dashboard SET data = ? WHERE uid = ?",
                         (json.dumps(data), data["uid"]),
                     )
-                    print("   * Replacing pmm panels in dashboard: %s" % (data["title"],))
+                    print("   * Replacing SSM panels in dashboard: %s" % (data["title"],))
                 except Exception as err:
-                    print("   * Replacing pmm panels in dashboard %s failed: %s" % (data["title"], str(err)))
+                    print("   * Replacing SSM panels in dashboard %s failed: %s" % (data["title"], str(err)))
 
         try:
             tag = data["tags"][0]
@@ -485,7 +471,6 @@ def main():
 
     stop_grafana()
 
-    remove_pmm_dashboards()
     adjust_dashboards()
 
     # restart Grafana to load app and set home dashboard below
