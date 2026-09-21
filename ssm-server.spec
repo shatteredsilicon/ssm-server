@@ -25,8 +25,8 @@ See the SSM docs for more information.
 
 %prep
 %setup -q -n %{name}
-sed -i "s/ENV_SERVER_USER/${SERVER_USER:-ssm}/g" prometheus.yml prometheus1.yml
-sed -i "s/ENV_SERVER_PASSWORD/${SERVER_PASSWORD:-ssm}/g" prometheus.yml prometheus1.yml
+sed -i "s/ENV_SERVER_USER/${SERVER_USER:-ssm}/g" prometheus.yml
+sed -i "s/ENV_SERVER_PASSWORD/${SERVER_PASSWORD:-ssm}/g" prometheus.yml
 echo "${SERVER_USER:-ssm}:$(openssl passwd -apr1 ${SERVER_PASSWORD:-ssm})" > .htpasswd
 
 
@@ -47,7 +47,6 @@ mv tmpfiles.d-ssm.conf %{buildroot}%{_sysconfdir}/tmpfiles.d/ssm.conf
 
 install -d %{buildroot}%{_sysconfdir}/prometheus/rules
 mv prometheus.yml %{buildroot}%{_sysconfdir}/prometheus.yml
-mv prometheus1.yml %{buildroot}%{_sysconfdir}/prometheus1.yml
 mv prometheus-rules/* %{buildroot}%{_sysconfdir}/prometheus/rules/
 
 install -d %{buildroot}%{_sysconfdir}/consul
@@ -74,7 +73,6 @@ cp -pav ./ssm-migration.sql %{buildroot}%{_datadir}/%{name}/ssm-migration.sql
 %{_sysconfdir}/supervisord.d
 %{_sysconfdir}/consul
 %{_sysconfdir}/prometheus.yml
-%{_sysconfdir}/prometheus1.yml
 %{_sysconfdir}/prometheus/rules/ssm_*.yml
 %{_sysconfdir}/nginx/.htpasswd
 %{_sysconfdir}/nginx/conf.d/ssm.conf
