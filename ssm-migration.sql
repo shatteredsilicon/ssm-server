@@ -46,6 +46,14 @@ CREATE TABLE IF NOT EXISTS `ssm`.`query_explain_indexes` (
   INDEX (schema_name, table_name, index_name, instance_id)
 ) CHARSET='utf8';
 
+CREATE TABLE IF NOT EXISTS `ssm`.`tool_reports` (
+  instance_id INT UNSIGNED NOT NULL,
+  ts          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `type`      VARCHAR(100) CHARSET 'utf8' NOT NULL,
+  payload     LONGTEXT DEFAULT NULL,
+  PRIMARY KEY (instance_id, ts, `type`)
+);
+
 CREATE USER IF NOT EXISTS 'ssm'@'localhost' IDENTIFIED BY 'ssm' WITH MAX_USER_CONNECTIONS 10;
 GRANT SELECT, PROCESS, SUPER, REPLICATION CLIENT, RELOAD ON *.* TO 'ssm'@'localhost';
 GRANT SELECT, UPDATE, DELETE, DROP ON performance_schema.* TO 'ssm'@'localhost';
